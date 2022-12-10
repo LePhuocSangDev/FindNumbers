@@ -5,7 +5,7 @@ const SideBar = () => {
   return (
     <div
       className="fixed
-     flex flex-col top-0 left-0 bottom-0 w-14 md:w-48 bg-[#272522] h-full text-white transition-all duration-300 border-none z-10"
+     flex flex-col top-0 left-0 bottom-0 w-14 md:w-48 bg-[#272522] text-white transition-all duration-300 border-none z-10"
     >
       <div className="overflow-y-auto overflow-x-hidden flex flex-col justify-between flex-grow">
         <ul className="flex flex-col py-4 space-y-1">

@@ -97,7 +97,7 @@ const Play = ({ type }: { type: string }) => {
         <div>hehe</div>
       </Modal>
       <Modal isShowing={showConfirmBack} hide={toggleConfirmBack}>
-        <div>setting</div>
+        <div className="w-[500px] h-[500px]">setting</div>
       </Modal>
       <Modal isShowing={showConfirmReplay} hide={toggleConfirmReplay}>
         <div>replay</div>

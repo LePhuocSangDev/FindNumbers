@@ -55,7 +55,7 @@ const Options = ({
   handleClock();
 
   return (
-    <div className="flex flex-col relative justify-center flex-1 h-1/2 gap-12">
+    <div className="flex flex-col relative justify-center w-full flex-1 gap-12">
       <div className="flex items-center gap-8">
         <span>Target Number:</span>
         <span className="block text-center px-4 py-2 bg-[#413e3c] w-[120px] text-yellow-500">

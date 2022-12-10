@@ -128,7 +128,7 @@ const Login = () => {
         </div>
       </div>
       <Modal isShowing={isShowing} hide={toggle}>
-        <div className="w-full h-full rounded-lg flex">
+        <div className="flex">
           <div
             className="w-full h-auto bg-gray-400 hidden lg:block lg:w-1/2 bg-cover rounded-l-lg"
             style={{
