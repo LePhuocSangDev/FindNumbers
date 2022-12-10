@@ -1,11 +1,31 @@
-import React from "react";
+import React, { useState } from "react";
 import { AiFillLock } from "react-icons/ai";
 import { Link } from "react-router-dom";
-import ForgotPassModal from "../components/ForgotPassModal";
+import Modal from "../components/Modal";
+import useModal from "../hooks/useModal";
+import jwt_decode from "jwt-decode";
+import { GoogleLogin } from "@react-oauth/google";
+import { useGoogleLogin } from "@react-oauth/google";
+import axios from "axios";
 
 const Login = () => {
+  const { isShowing, toggle } = useModal();
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      console.log(tokenResponse);
+      const userInfo = await axios.get(
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
+      );
+
+      console.log(userInfo.data);
+    },
+    onError: (errorResponse) => console.log(errorResponse),
+  });
+
   return (
-    <div className="flex min-h-full items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="flex min-h-full h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         <div>
           <img
@@ -53,6 +73,7 @@ const Login = () => {
           <div className="flex items-center justify-between">
             <div className="text-sm">
               <a
+                onClick={() => toggle()}
                 href="#"
                 className="font-medium text-indigo-600 hover:text-indigo-500"
               >
@@ -99,13 +120,74 @@ const Login = () => {
           </a>
           <a
             href="#"
+            onClick={() => googleLogin()}
             className="text-center rounded-2xl border-b-2 border-b-gray-300 bg-white py-2.5 px-4 font-bold text-blue-500 ring-2 ring-gray-300 hover:bg-gray-200 active:translate-y-[0.125rem] active:border-b-gray-200"
           >
             GOOGLE
           </a>
         </div>
       </div>
-      <ForgotPassModal />
+      <Modal isShowing={isShowing} hide={toggle}>
+        <div className="w-full h-full rounded-lg flex">
+          <div
+            className="w-full h-auto bg-gray-400 hidden lg:block lg:w-1/2 bg-cover rounded-l-lg"
+            style={{
+              backgroundImage:
+                "url('https://source.unsplash.com/oWTW-jNGl9I/600x800')",
+            }}
+          ></div>
+          <div className="w-full lg:w-1/2 bg-white p-5 rounded-lg lg:rounded-l-none">
+            <div className="px-8 mb-4 text-center">
+              <h3 className="pt-4 mb-2 text-2xl">Forgot Your Password?</h3>
+              <p className="mb-4 text-sm text-gray-700">
+                We get it, stuff happens. Just enter your email address below
+                and we'll send you a link to reset your password!
+              </p>
+            </div>
+            <form className="px-8 pt-6 pb-8 mb-4 bg-white rounded">
+              <div className="mb-4">
+                <label
+                  className="block mb-2 text-sm font-bold text-gray-700"
+                  htmlFor="email"
+                >
+                  Email
+                </label>
+                <input
+                  className="w-full px-3 py-2 text-sm leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+                  id="email"
+                  type="email"
+                  placeholder="Enter Email Address..."
+                />
+              </div>
+              <div className="mb-6 text-center">
+                <button
+                  className="w-full px-4 py-2 font-bold text-white bg-red-500 rounded-full hover:bg-red-700 focus:outline-none focus:shadow-outline"
+                  type="button"
+                >
+                  Reset Password
+                </button>
+              </div>
+              <hr className="mb-6 border-t" />
+              <div className="text-center">
+                <Link
+                  className="inline-block text-sm text-blue-500 align-baseline hover:text-blue-800"
+                  to="/register"
+                >
+                  Create an Account!
+                </Link>
+              </div>
+              <div className="text-center">
+                <Link
+                  className="inline-block text-sm text-blue-500 align-baseline hover:text-blue-800"
+                  to="/login"
+                >
+                  Already have an account? Login!
+                </Link>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 
 const Chat = () => {
   return (
-    <div className="flex-1">
+    <div className="flex-1 h-1/2">
       <div className="flex sm:items-center justify-between py-3 border-b-2 border-gray-200"></div>
       <div
         id="messages"
-        className="flex flex-col space-y-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch"
+        className="flex flex-col h-full space-y-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch"
       >
         <div className="chat-message">
           <div className="flex items-end justify-end">
@@ -34,6 +34,24 @@ const Chat = () => {
         <div className="chat-message">
           <div className="flex items-end">
             <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
+              <div>
+                <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
+                  It seems like you are from Mac OS world. There is no /Users/
+                  folder on linux ?
+                </span>
+              </div>
+              <div>
+                <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
+                  It seems like you are from Mac OS world. There is no /Users/
+                  folder on linux ?
+                </span>
+              </div>
+              <div>
+                <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
+                  It seems like you are from Mac OS world. There is no /Users/
+                  folder on linux ?
+                </span>
+              </div>
               <div>
                 <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
                   It seems like you are from Mac OS world. There is no /Users/

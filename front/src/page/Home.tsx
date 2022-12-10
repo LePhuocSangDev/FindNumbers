@@ -11,7 +11,7 @@ const Home = () => {
           src="https://images.unsplash.com/photo-1608178398319-48f814d0750c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=879&q=80"
           alt=""
         />
-        <Link to="/play"></Link>
+        <Link to="/play/single"></Link>
       </div>
       <div className="flex-1 flex flex-col gap-8 md:gap-16 text-center md:px-12 md:py-8">
         <h4 className="text-white text-4xl md:text-6xl font-[500]">
@@ -20,7 +20,7 @@ const Home = () => {
         <div className="flex gap-4 flex-col">
           <Link
             className="flex p-2 md:py-4 md:px-6 items-center gap-12 text-white rounded-xl bg-[#413e3c] justify-start"
-            to="/play"
+            to="/play/single"
           >
             <BsPencil className="text-2xl ml-2" />
             <div>
@@ -30,7 +30,7 @@ const Home = () => {
           </Link>
           <Link
             className="flex p-2 md:py-4 md:px-6 items-center gap-12 text-white rounded-xl bg-[#4f46e5] justify-start"
-            to="/paly"
+            to="/play/multi"
           >
             <BsPencil className="text-2xl ml-2" />
             <div>

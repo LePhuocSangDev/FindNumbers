@@ -7,5 +7,7 @@
 
 
 body {font-family: 'Roboto', sans-serif;
+    background-color: #a09995
 }
 
+a:focus-visible,button:focus-visible {outline:none}
