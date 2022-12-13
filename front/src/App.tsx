@@ -7,7 +7,7 @@ function App() {
   return (
     <div className="w-screen h-screen flex ">
       <SideBar />
-      <div className="ml-[56px] bg-[#312e2b] md:ml-[192px] w-[calc(100vw-56px)] md:w-[calc(100vw-192px)] p-4 md:py-4 md:px-8">
+      <div className="ml-[56px] md:ml-[192px] w-[calc(100vw-56px)] md:w-[calc(100vw-192px)] p-4 md:py-4 md:px-8">
         <Outlet />
       </div>
     </div>

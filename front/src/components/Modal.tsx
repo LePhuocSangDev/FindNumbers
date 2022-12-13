@@ -1,39 +1,33 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 
 type Props = {
   children: React.ReactNode;
   isShowing: boolean;
   hide(): void;
+  closeButton?: boolean;
 };
 
-const Modal = ({ children, isShowing, hide }: Props) => {
-  const [close, setClose] = useState(false);
-  // useEffect(() => {
-  //   window.addEventListener("onkeydown", (e: KeyboardEvent) => {
-  //     setClose(true);
-  //   });
-
-  //   return () => {};
-  // }, []);
+const Modal = ({ children, isShowing, hide, closeButton }: Props) => {
   return (
     <>
       {isShowing && (
         <div
           id="modal"
-          tabIndex={0}
-          onKeyDown={() => console.log("key pressed")}
-          className={`fixed top-0 left-0 w-screen h-screen flex items-center justify-center bg-[rgba(0,0,0,0.3)] bg-opacity-50 transform ${
-            close ? "scale-0" : "scale-200"
+          // tabIndex={0}
+          // onKeyDown={hide}
+          className={`fixed top-0 left-0 z-20 w-screen h-screen flex items-center justify-center bg-[rgba(0,0,0,0.3)] bg-opacity-50 transform ${
+            isShowing ? "scale-200" : "scale-0"
           }   transition-transform duration-300`}
         >
           <div className="relative">
-            <button
-              onClick={hide}
-              className="absolute right-[10px] top-[5px] text-xl z-10"
-            >
-              &#10005;
-            </button>
+            {closeButton && (
+              <button
+                onClick={hide}
+                className="absolute right-[10px] top-[5px] text-xl z-30"
+              >
+                &#10005;
+              </button>
+            )}
             {children}
           </div>
         </div>
