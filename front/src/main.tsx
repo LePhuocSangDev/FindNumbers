@@ -4,7 +4,7 @@ import App from "./App";
 import "./style/global.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Login from "./page/Login";
-import Home from "./page/Home";
+import Home from "./page/LandingPage";
 import Play from "./page/Play/Play";
 import ErrorPage from "./page/ErrorPage";
 import Register from "./page/Register";
@@ -12,17 +12,12 @@ import { PersistGate } from "redux-persist/integration/react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Provider } from "react-redux";
 import { persistor, store } from "./redux/store";
+import LandingPage from "./page/LandingPage";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
+    element: <LandingPage />,
     errorElement: <ErrorPage />,
-    children: [
-      {
-        path: "/",
-        element: <Home />,
-      },
-    ],
   },
   {
     path: "/login",

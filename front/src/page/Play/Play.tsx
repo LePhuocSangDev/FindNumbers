@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { socket } from "../../service/socket";
 import Chat from "../../components/Chat";
 import Modal from "../../components/Modal";
@@ -21,15 +21,43 @@ const Play = ({ type }: { type: string }) => {
 
   const [currentNumber, setCurrentNumber] = useState(0);
   const [points, setPoints] = useState(0);
+  const [seconds, setSeconds] = useState(0);
+  const [minutes, setMinutes] = useState(0);
+  const [hours, setHours] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [music] = useState(new Audio(audio));
   const [reOrderArray, setReOrderArray] = useState<number[]>(mode1);
   const buttonsCollections = document.getElementsByTagName("button");
   var buttons = Array.from(buttonsCollections);
 
   useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (!isPaused) {
+      interval = setInterval(() => {
+        setSeconds((prevSeconds) => prevSeconds + 1);
+        if (seconds === 59) {
+          setMinutes((prevMinutes) => prevMinutes + 1);
+          setSeconds(0);
+        }
+        if (minutes === 59) {
+          setHours((prevHours) => prevHours + 1);
+          setMinutes(0);
+          setSeconds(0);
+        }
+        if (hours === 59) {
+          setHours(0);
+          setMinutes(0);
+          setSeconds(0);
+        }
+      }, 1000);
+    }
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isPaused, seconds, minutes, hours]);
+  useEffect(() => {
     sufferArray();
   }, []);
-
   const sufferArray = () => {
     let shuffled = mode1
       .map((value) => ({ value, sort: Math.random() })) // put each element in the array in an object, and give it a random sort key
@@ -59,6 +87,9 @@ const Play = ({ type }: { type: string }) => {
   const handleSound = (e: any): void => {
     const checked = e.target.checked;
     checked ? music.play() : music.pause();
+  };
+  const togglePause = () => {
+    setIsPaused((prevIsPaused) => !prevIsPaused);
   };
   return (
     <div className="flex gap-6 flex-col md:flex-row md:h-screen py-2 px-4 md:px-8 md:py-4">
@@ -96,6 +127,10 @@ const Play = ({ type }: { type: string }) => {
           toggleConfirmReplay={toggleConfirmReplay}
           toggleResult={toggleResult}
           type={type}
+          minute={minutes}
+          second={seconds}
+          hour={hours}
+          togglePause={togglePause}
         />
         {type === "single" ? "" : <Chat />}
       </div>
@@ -165,7 +200,8 @@ const Play = ({ type }: { type: string }) => {
           <h4 className="text-blue-300 font-bold ">YOUR SCORE</h4>
           <div className="px-2">
             You get <span className="text-yellow-500">{points}</span> points in{" "}
-            <span>20 minutes</span> and <span>10 seconds</span>
+            <span>{minutes === 0 ? "" : minutes + " minutes and "}</span>
+            <span>{seconds} seconds</span>
           </div>
           <div className="flex justify-evenly">
             <button

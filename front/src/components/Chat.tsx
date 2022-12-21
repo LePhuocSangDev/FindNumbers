@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { socket } from "../service/socket";
 import ScrollToBottom from "react-scroll-to-bottom";
-interface List {
+interface Message {
   room: string;
   message: string;
   time: Date;
@@ -14,25 +14,25 @@ const Chat = () => {
   const [messageList, setMessageList] = useState([]);
 
   const sendMessage = async () => {
-    if (currentMessage !== "") {
-      const messageData = {
-        room: room,
-        // author: username,
-        message: currentMessage,
-        time:
-          new Date(Date.now()).getHours() +
-          ":" +
-          new Date(Date.now()).getMinutes(),
-      };
+    try {
+      if (currentMessage !== "") {
+        const messageData: Message = {
+          room: room,
+          message: currentMessage,
+          time: new Date(),
+        };
 
-      await socket.emit("send_message", messageData);
-      setMessageList((list) => [...list, messageData]);
-      setCurrentMessage("");
+        await socket.emit("send_message", messageData);
+        setMessageList((list) => [...list, messageData]);
+        setCurrentMessage("");
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
 
   useEffect(() => {
-    socket.on("receive_message", (data) => {
+    socket.on("receive_message", (data: Message) => {
       setMessageList((list) => [...list, data]);
     });
     return () => {
@@ -47,26 +47,24 @@ const Chat = () => {
         className="flex flex-col h-[42vh] space-y-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch"
       >
         <ScrollToBottom>
-          {messageList.map(
-            (msg: { message: string; room: string; time: Date }, index) => (
-              <div key={index} className="chat-message pb-2">
-                <div className="flex items-end justify-end">
-                  <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
-                    <div>
-                      <span className="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-600 text-white ">
-                        {msg.message}
-                      </span>
-                    </div>
+          {messageList.map((msg: Message, index) => (
+            <div key={index} className="chat-message pb-2">
+              <div className="flex items-end justify-end">
+                <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
+                  <div>
+                    <span className="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-600 text-white ">
+                      {msg.message}
+                    </span>
                   </div>
-                  <img
-                    src="https://images.unsplash.com/photo-1590031905470-a1a1feacbb0b?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-                    alt="My profile"
-                    className="w-6 h-6 rounded-full order-2/"
-                  />
                 </div>
+                <img
+                  src="https://images.unsplash.com/photo-1590031905470-a1a1feacbb0b?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
+                  alt="My profile"
+                  className="w-6 h-6 rounded-full order-2/"
+                />
               </div>
-            )
-          )}
+            </div>
+          ))}
         </ScrollToBottom>
       </div>
       <div className="border-t-2 border-gray-200 px-2 py-2 sm:mb-0">
