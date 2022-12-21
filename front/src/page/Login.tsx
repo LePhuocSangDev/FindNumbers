@@ -26,7 +26,7 @@ const Login = () => {
 
   return (
     <div className="flex min-h-full h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md space-y-8 bg-white p-4 rounded-md">
         <div>
           <img
             className="mx-auto h-12 w-auto"
@@ -127,7 +127,7 @@ const Login = () => {
           </a>
         </div>
       </div>
-      <Modal isShowing={isShowing} hide={toggle}>
+      <Modal isShowing={isShowing} closeButton hide={toggle}>
         <div className="flex">
           <div
             className="w-full h-auto bg-gray-400 hidden lg:block lg:w-1/2 bg-cover rounded-l-lg"

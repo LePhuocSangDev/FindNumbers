@@ -1,25 +1,21 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
-import "./index.css";
-import { createBrowserRouter, RouterProvider, Route } from "react-router-dom";
+import "./style/global.css";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Login from "./page/Login";
-import Home from "./page/Home";
 import Play from "./page/Play/Play";
 import ErrorPage from "./page/ErrorPage";
 import Register from "./page/Register";
+import { PersistGate } from "redux-persist/integration/react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Provider } from "react-redux";
+import { persistor, store } from "./redux/store";
+import LandingPage from "./page/LandingPage";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
+    element: <LandingPage />,
     errorElement: <ErrorPage />,
-    children: [
-      {
-        path: "/",
-        element: <Home />,
-      },
-    ],
   },
   {
     path: "/login",
@@ -34,14 +30,19 @@ const router = createBrowserRouter([
     element: <Play type="single" />,
   },
   {
-    path: "/play/multi",
+    path: "/play/multi/:room",
     element: <Play type="multi" />,
   },
 ]);
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <GoogleOAuthProvider clientId="174853657013-663iiriejk9esad3foqs0k9e604dh85v.apps.googleusercontent.com">
-      <RouterProvider router={router} />
-    </GoogleOAuthProvider>
+    <Provider store={store}>
+      <PersistGate loading="null" persistor={persistor}>
+        <GoogleOAuthProvider clientId="174853657013-663iiriejk9esad3foqs0k9e604dh85v.apps.googleusercontent.com">
+          <RouterProvider router={router} />
+        </GoogleOAuthProvider>
+      </PersistGate>
+    </Provider>
   </React.StrictMode>
 );

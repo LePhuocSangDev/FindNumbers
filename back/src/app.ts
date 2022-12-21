@@ -1,25 +1,52 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import dotenv from "dotenv"
+import dotenv from 'dotenv';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import { Server, Socket } from 'socket.io';
+import authRouter from './routes/auth';
 
-const app = express();
 dotenv.config();
 
-const port = 3000;
-
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+const app = express();
+const server = app.listen(process.env.PORT, () => {
+  console.log(`Example app listening on port ${process.env.PORT}`);
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
+app.use(cors());
+
+app.use('/api/auth', authRouter);
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 mongoose
-  .connect(process.env.MONGO_URL || "")
-  .then(() => console.log("DB Connection Successful!"))
+  .connect(process.env.MONGO_URL || "",)
+  .then(() => console.log('DB Connection Successful!'))
   .catch((err) => {
     console.log(err);
   });
 
-mongoose.set('strictQuery', false)
+mongoose.set('strictQuery', true);
+
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+  },
+});
+
+io.on('connection', (socket: Socket) => {
+  console.log(`User Connected: ${socket.id}`);
+
+  socket.on('join_room', (data: { room: string }) => {
+    socket.join(data.room);
+    console.log(`User with ID: ${socket.id} joined room: ${data.room}`);
+  });
+
+  socket.on('send_message', (data: { room: string, message: string }) => {
+    socket.to(data.room).emit('receive_message', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User Disconnected', socket.id);
+  });
+});
