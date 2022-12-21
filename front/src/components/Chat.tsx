@@ -11,7 +11,7 @@ const Chat = () => {
   const location = useLocation();
   const room = location.pathname.split("/")[3];
   const [currentMessage, setCurrentMessage] = useState("");
-  const [messageList, setMessageList] = useState([]);
+  const [messageList, setMessageList] = useState<Message[]>([]);
 
   const sendMessage = async () => {
     try {

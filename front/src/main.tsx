@@ -1,10 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
 import "./style/global.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Login from "./page/Login";
-import Home from "./page/LandingPage";
 import Play from "./page/Play/Play";
 import ErrorPage from "./page/ErrorPage";
 import Register from "./page/Register";
