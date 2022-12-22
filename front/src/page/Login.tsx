@@ -3,13 +3,49 @@ import { AiFillLock } from "react-icons/ai";
 import { Link } from "react-router-dom";
 import Modal from "../components/Modal";
 import useModal from "../hooks/useModal";
-import jwt_decode from "jwt-decode";
-import { GoogleLogin } from "@react-oauth/google";
+
 import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { useDispatch, useSelector } from "react-redux";
+import { loginGoogle, selectUser } from "../redux/userSlice";
+
+const schema = yup
+  .object({
+    username: yup
+      .string()
+      .min(5, "Vui lòng nhập tối thiểu 5 kí tự")
+      .max(25, "Vui lòng nhập tối đa 25 kí tự")
+      .required("Vui lòng không để trống"),
+    password: yup
+      .string()
+      .min(5, "Vui lòng nhập tối thiểu 5 kí tự")
+      .max(25, "Vui lòng nhập tối đa 25 kí tự")
+      .required("Vui lòng không để trống"),
+  })
+  .required();
 
 const Login = () => {
   const { isShowing, toggle } = useModal();
+
+  const {
+    resetField,
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
+
+  const dispatch = useDispatch();
+  const { userInfo } = useSelector(selectUser);
+  console.log(userInfo);
 
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -19,10 +55,16 @@ const Login = () => {
         { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
       );
 
-      console.log(userInfo.data);
+      dispatch(loginGoogle(userInfo.data));
     },
     onError: (errorResponse) => console.log(errorResponse),
   });
+
+  // const handleLogin = (data) => {
+  //   // login(dispatch, data);
+  //   resetField("password");
+  //   console.log(data);
+  // };
 
   return (
     <div className="flex min-h-full h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -37,21 +79,28 @@ const Login = () => {
             Sign in to your account
           </h2>
         </div>
-        <form className="mt-8 space-y-6" action="#" method="POST">
+        <form
+          onSubmit={handleSubmit((data) => {
+            resetField("username");
+            resetField("password");
+            console.log(data);
+          })}
+          className="mt-8 space-y-6"
+        >
           <input type="hidden" name="remember" defaultValue="true" />
           <div className="-space-y-px rounded-md shadow-sm">
             <div>
               <label htmlFor="email-address" className="sr-only">
-                Email address
+                Username
               </label>
               <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
+                {...register("username")}
+                name="username"
+                type="username"
+                autoComplete="username"
                 required
                 className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                placeholder="Email address"
+                placeholder="username"
               />
             </div>
             <div>
@@ -60,6 +109,7 @@ const Login = () => {
               </label>
               <input
                 id="password"
+                {...register("password")}
                 name="password"
                 type="password"
                 autoComplete="current-password"
