@@ -45,7 +45,11 @@ const initialState: State = {
 export const userSlice = createSlice({
   name: "user",
   initialState,
-  reducers: {},
+  reducers: {
+    loginGoogle: (state, action) => {
+      state.userInfo = action.payload;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(registerUser.pending, (state) => {
@@ -75,6 +79,6 @@ export const userSlice = createSlice({
 
 export const selectUser = (state: State) => state.user;
 
-export const {} = userSlice.actions;
+export const { loginGoogle } = userSlice.actions;
 
 export default userSlice.reducer;

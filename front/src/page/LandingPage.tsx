@@ -1,19 +1,21 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import useModal from "../hooks/useModal";
 import styles from "../style/style";
 import { socket } from "../service/socket";
 import { FaSignInAlt } from "react-icons/fa";
+import { useSelector } from "react-redux";
+import { selectUser } from "../redux/userSlice";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { userInfo } = useSelector(selectUser);
   const [room, setRoom] = useState("");
   const { isShowing: showSinglePlayOptions, toggle: toggleSinglePlayOptions } =
     useModal();
   const { isShowing: showMultiPlayOptions, toggle: toggleMultiPlayOptions } =
     useModal();
-  const { isShowing: showRoom, toggle: toggleRoom } = useModal();
   const { isShowing: showCreateOptions, toggle: toggleCreateOptions } =
     useModal();
   const { isShowing: showJoinGameModal, toggle: toggleJoinGameModal } =
@@ -21,13 +23,14 @@ const LandingPage = () => {
 
   const handleSinglePlay = () => {
     toggleSinglePlayOptions();
-    // navigate("/play/single");
   };
   const handleMultiPlay = () => {
     toggleMultiPlayOptions();
     // navigate("/play/multi");
   };
-
+  const handleGameMode = (mode: string) => {
+    navigate(`/play/single/${mode}`);
+  };
   const createGame = () => {
     if (room !== "") {
       socket.emit("join_room", room);
@@ -36,10 +39,24 @@ const LandingPage = () => {
   };
   return (
     <div className="bg-gray-800 font-sans leading-normal tracking-normal h-screen">
-      <button className="bg-blue-500 hover:bg-blue-600 absolute top-[20px] right-[20px] text-white font-bold py-2 px-4 rounded-md flex items-center">
-        <FaSignInAlt className="mr-2" />
-        Login
-      </button>
+      {userInfo ? (
+        <div className="bg-blue-500 hover:bg-blue-600 absolute top-[20px] right-[20px] text-white font-bold py-1 px-2 rounded-md flex items-center">
+          <img
+            className="w-8 h-8 rounded-full mr-4"
+            src="https://images.unsplash.com/photo-1671625120178-5b129215207e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxlZGl0b3JpYWwtZmVlZHwyfHx8ZW58MHx8fHw%3D&auto=format&fit=crop&w=600&q=60"
+            alt="User avatar"
+          />
+          <div className="text-lg font-bold text-gray-900">{userInfo.name}</div>
+        </div>
+      ) : (
+        <Link
+          to="/login"
+          className="bg-blue-500 hover:bg-blue-600 absolute top-[20px] right-[20px] text-white font-bold py-2 px-4 rounded-md flex items-center"
+        >
+          <FaSignInAlt className="mr-2" />
+          Login
+        </Link>
+      )}
       <div className="container mx-auto px-4 h-full flex items-center justify-center">
         <div className="w-full lg:w-1/2 px-4 flex flex-col gap-4 items-center ">
           <h1 className="text-4xl font-bold mb-4 text-white">
@@ -73,16 +90,28 @@ const LandingPage = () => {
         <div className="bg-white w-[300px] h-[300px] flex flex-col justify-evenly text-center p-2">
           <h4 className="text-blue-300 font-bold ">Play Single</h4>
           <div className="grid grid-cols-2 gap-2 h-3/4">
-            <div className="border-[rgba(0,0,0,0.2)] border-solid border-[1px] rounded-md shadow-md">
+            <div
+              onClick={() => handleGameMode("easy")}
+              className="border-[rgba(0,0,0,0.2)] cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+            >
               Easy
             </div>
-            <div className="border-[rgba(0,0,0,0.2)] border-solid border-[1px] rounded-md shadow-md">
+            <div
+              onClick={() => handleGameMode("hard")}
+              className="border-[rgba(0,0,0,0.2)] cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+            >
               Hard
             </div>
-            <div className="border-[rgba(0,0,0,0.2)] border-solid border-[1px] rounded-md shadow-md">
+            <div
+              onClick={() => handleGameMode("superHard")}
+              className="border-[rgba(0,0,0,0.2)] cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+            >
               Super Hard
             </div>
-            <div className="border-[rgba(0,0,0,0.2)] border-solid border-[1px] rounded-md shadow-md">
+            <div
+              onClick={() => handleGameMode("superEyes")}
+              className="border-[rgba(0,0,0,0.2)] cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+            >
               Super Eyes
             </div>
           </div>

@@ -7,12 +7,12 @@ import useModal from "../../hooks/useModal";
 import "./Play.css";
 import audio from "../../assets/audio/music.mp3";
 import style from "../../style/style";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { lines, mode1, mode2 } from "../../data/data";
 
 const Play = ({ type }: { type: string }) => {
   const navigate = useNavigate();
-
+  const { mode } = useParams();
   const { isShowing: showConfirmBack, toggle: toggleConfirmBack } = useModal();
   const { isShowing: showSetting, toggle: toggleSetting } = useModal();
   const { isShowing: showConfirmReplay, toggle: toggleConfirmReplay } =
@@ -56,7 +56,17 @@ const Play = ({ type }: { type: string }) => {
     };
   }, [isPaused, seconds, minutes, hours]);
   useEffect(() => {
-    sufferArray();
+    let interval: NodeJS.Timeout;
+    if (mode === "easy") {
+      sufferArray();
+    }
+    if (mode === "superHard") {
+      interval = setInterval(() => sufferArray(), 15000);
+    }
+    if (mode === "superEyes") {
+      interval = setInterval(() => sufferArray(), 5000);
+    }
+    return () => clearInterval(interval);
   }, []);
   const sufferArray = () => {
     let shuffled = mode1
@@ -97,7 +107,9 @@ const Play = ({ type }: { type: string }) => {
         {reOrderArray.map((num, index) => (
           <button
             id={`number-${index + 1}`}
-            className={`button z-[10] circle text-md md:text-2xl flex justify-center items-center absolute rounded-[50%] p-1 w-7 h-7 md:w-12 md:h-12 focus-visible:outline-none`}
+            className={`button ${
+              mode === "easy" ? "mode-easy" : ""
+            } z-[10] circle text-md md:text-2xl flex justify-center items-center absolute rounded-[50%] p-1 w-7 h-7 md:w-12 md:h-12 focus-visible:outline-none`}
             key={num}
             onClick={(e) => handleChooseNumber(e, num)}
           >
