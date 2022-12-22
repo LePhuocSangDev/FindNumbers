@@ -29,7 +29,20 @@ const Play = ({ type }: { type: string }) => {
   const [reOrderArray, setReOrderArray] = useState<number[]>(mode1);
   const buttonsCollections = document.getElementsByTagName("button");
   var buttons = Array.from(buttonsCollections);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "F3") {
+        // Prevent the default action of the F3 key
+        event.preventDefault();
+      }
+    };
 
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (!isPaused) {
