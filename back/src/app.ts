@@ -45,6 +45,9 @@ io.on('connection', (socket: Socket) => {
   socket.on('send_message', (data: { room: string, message: string }) => {
     socket.to(data.room).emit('receive_message', data);
   });
+  socket.on('send_gameData', (data: { chosenNumber: number,room: string, points: number, player: string}) => {
+    socket.to(data.room).emit('receive_gameData', data);
+  });
 
   socket.on('disconnect', () => {
     console.log('User Disconnected', socket.id);

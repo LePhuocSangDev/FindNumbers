@@ -47,6 +47,21 @@ const LandingPage = () => {
             alt="User avatar"
           />
           <div className="text-lg font-bold text-gray-900">{userInfo.name}</div>
+          <div className="origin-top-right absolute right-0 top-10 mt-2 w-32 rounded-md shadow-lg">
+            <div className="bg-white rounded-md shadow-xs">
+              <div className="py-1">
+                <Link
+                  to="/player/friends"
+                  className="block px-4 py-2 text-sm font-medium leading-5 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 focus:text-gray-900"
+                >
+                  Friends
+                </Link>
+                <button className="block px-4 py-2 text-sm font-medium leading-5 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 focus:text-gray-900">
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <Link
@@ -57,7 +72,7 @@ const LandingPage = () => {
           Login
         </Link>
       )}
-      <div className="container mx-auto px-4 h-full flex items-center justify-center">
+      <div className="lg:container mx-auto px-4 h-full flex items-center justify-center">
         <div className="w-full lg:w-1/2 px-4 flex flex-col gap-4 items-center ">
           <h1 className="text-4xl font-bold mb-4 text-white">
             Welcome to the Multiplayer Game
@@ -65,16 +80,16 @@ const LandingPage = () => {
           <p className="text-xl font-semibold mb-4 text-white">
             Join the fun and compete with players from around the world!
           </p>
-          <div className=" gap-4 flex ">
+          <div className=" gap-4 flex md:w-1/2 ">
             <button
               onClick={handleSinglePlay}
-              className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full"
+              className="md:w-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full"
             >
               Single Player
             </button>
             <button
               onClick={handleMultiPlay}
-              className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full"
+              className="md:w-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full"
             >
               Multi Player
             </button>

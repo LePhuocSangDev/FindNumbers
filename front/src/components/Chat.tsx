@@ -27,7 +27,6 @@ const Chat = () => {
           author: userInfo.name || " no one",
           time: new Date(),
         };
-
         await socket.emit("send_message", messageData);
         setMessageList((list) => [...list, messageData]);
         setCurrentMessage("");
@@ -45,7 +44,6 @@ const Chat = () => {
       socket.off("receive_message");
     };
   }, []);
-  console.log(messageList);
   return (
     <div className="flex-1 w-full">
       <div className="flex sm:items-center justify-between py-3 border-b-2 border-gray-200"></div>
@@ -67,8 +65,8 @@ const Chat = () => {
                       className={`px-4 py-2 rounded-lg inline-block ${
                         userInfo.name === msg.author
                           ? "bg-white text-black rounded-br-none"
-                          : "bg-blue-600 rounded-bl-none"
-                      }  text-white`}
+                          : "bg-blue-600 rounded-bl-none text-white"
+                      } `}
                     >
                       {msg.message}
                     </span>

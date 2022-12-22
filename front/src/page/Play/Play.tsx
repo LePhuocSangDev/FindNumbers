@@ -9,10 +9,13 @@ import audio from "../../assets/audio/music.mp3";
 import style from "../../style/style";
 import { useNavigate, useParams } from "react-router-dom";
 import { lines, mode1, mode2 } from "../../data/data";
+import { selectUser } from "../../redux/userSlice";
+import { useSelector } from "react-redux";
 
 const Play = ({ type }: { type: string }) => {
   const navigate = useNavigate();
-  const { mode } = useParams();
+  const { mode, room } = useParams();
+  const {userInfo} = useSelector(selectUser)
   const { isShowing: showConfirmBack, toggle: toggleConfirmBack } = useModal();
   const { isShowing: showSetting, toggle: toggleSetting } = useModal();
   const { isShowing: showConfirmReplay, toggle: toggleConfirmReplay } =
@@ -26,6 +29,7 @@ const Play = ({ type }: { type: string }) => {
   const [hours, setHours] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [music] = useState(new Audio(audio));
+  const [gameData,setGameData] = useState();
   const [reOrderArray, setReOrderArray] = useState<number[]>(mode1);
   const buttonsCollections = document.getElementsByTagName("button");
   var buttons = Array.from(buttonsCollections);
@@ -81,6 +85,14 @@ const Play = ({ type }: { type: string }) => {
     }
     return () => clearInterval(interval);
   }, []);
+  useEffect(() => {
+    socket.on("receive_gameData", (data) => {
+      console.log(data)
+    });
+    return () => {
+      socket.off("receive_message");
+    };
+  }, []);
   const sufferArray = () => {
     let shuffled = mode1
       .map((value) => ({ value, sort: Math.random() })) // put each element in the array in an object, and give it a random sort key
@@ -88,15 +100,22 @@ const Play = ({ type }: { type: string }) => {
       .map(({ value }) => value); //unmap to get the original objects
     setReOrderArray(shuffled);
   };
-  const handleChooseNumber = (
+  const handleChooseNumber = async (
     e: React.MouseEvent<HTMLElement>,
     number: number
   ) => {
     if (number === currentNumber + 1) {
-      e.currentTarget.classList.add("spin");
+      // e.currentTarget.classList.add("spin");
       e.currentTarget.classList.add("chosen");
       setCurrentNumber((prevCurrent) => prevCurrent + 1);
       setPoints((prevPoints) => prevPoints + 1);
+      const gameData = { 
+        chosenNumber: number,        
+        points: points + 1,
+        room: room, 
+        player: userInfo.name || "no one",
+      };
+      await socket.emit("send_gameData", gameData);
     }
   };
   const handleHint = (): void => {
