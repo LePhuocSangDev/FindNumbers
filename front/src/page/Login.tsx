@@ -50,7 +50,7 @@ const Login = () => {
   const { userInfo } = useSelector(selectUser);
 
   useEffect(() => {
-    (userInfo.name !== null || userInfo.username !== null) && navigate("/");
+    userInfo !== null && navigate("/");
   }, [userInfo]);
 
   const googleLogin = useGoogleLogin({
