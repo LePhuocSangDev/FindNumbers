@@ -4,10 +4,9 @@ import Modal from "../components/Modal";
 import useModal from "../hooks/useModal";
 import styles from "../style/style";
 import { socket } from "../service/socket";
-import { FaSignInAlt } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { logOut, selectUser } from "../redux/userSlice";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import bg from "../assets/image/bg-3.png";
 import PageAnimation from "../style/PageAnimation";
@@ -77,9 +76,7 @@ const LandingPage = () => {
   };
   const handleMultiPlay = () => {
     socket.emit("get_rooms");
-    !userInfo.name && !userInfo.username
-      ? navigate("/login")
-      : toggleMultiPlayOptions();
+    !userInfo ? navigate("/login") : toggleMultiPlayOptions();
   };
   const handleGameMode = (mode: string) => {
     navigate(`/play/single/${mode}`);
