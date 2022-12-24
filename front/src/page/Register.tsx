@@ -1,10 +1,57 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { AiFillLock } from "react-icons/ai";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import loginBg from "../assets/image/bg-1.png";
 import PageAnimation from "../style/PageAnimation";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { useDispatch, useSelector } from "react-redux";
+import { registerUser } from "../redux/userSlice";
+import { AppThunk } from "redux-toolkit";
+
+const schema = yup
+  .object({
+    username: yup
+      .string()
+      .min(5, "Vui lòng nhập tối thiểu 5 kí tự")
+      .max(25, "Vui lòng nhập tối đa 25 kí tự")
+      .required("Vui lòng không để trống"),
+    email: yup
+      .string()
+      .email("Email không đúng chuẩn, ví dụ: youremail@example.com")
+      .required("Vui lòng không để trống"),
+    password: yup
+      .string()
+      .min(5, "Vui lòng nhập tối thiểu 5 kí tự")
+      .max(25, "Vui lòng nhập tối đa 25 kí tự")
+      .required("Vui lòng không để trống"),
+  })
+  .required();
 
 const Register = () => {
+  const navigate = useNavigate();
+  const {
+    resetField,
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      username: "",
+      email: "",
+      password: "",
+    },
+  });
+  const dispatch: (action: any) => void = useDispatch();
+  const { isFetching } = useSelector((state: any) => state.user);
+  const { userInfo } = useSelector((state: any) => state.user);
+
+  useEffect(() => {
+    userInfo !== null && navigate("/");
+  }, [userInfo]);
+
   return (
     <PageAnimation>
       <div className="flex min-h-full h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -14,7 +61,16 @@ const Register = () => {
             Register new account
           </h2>
 
-          <form className="mt-8 space-y-6" action="#" method="POST">
+          <form
+            onSubmit={handleSubmit((data) => {
+              dispatch(registerUser(data));
+              console.log(data);
+              resetField("username");
+              resetField("email");
+              resetField("password");
+            })}
+            className="mt-8 space-y-6"
+          >
             <input type="hidden" name="remember" defaultValue="true" />
             <div className="-space-y-px rounded-md shadow-sm flex flex-col gap-2">
               <div>
@@ -23,9 +79,7 @@ const Register = () => {
                 </label>
                 <input
                   id="email-address"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  {...register("username", { required: true })}
                   required
                   className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   placeholder="Enter Username"
@@ -37,8 +91,8 @@ const Register = () => {
                 </label>
                 <input
                   id="email-address"
-                  name="email"
                   type="email"
+                  {...register("email", { required: true })}
                   autoComplete="email"
                   required
                   className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
@@ -51,9 +105,8 @@ const Register = () => {
                 </label>
                 <input
                   id="password"
-                  name="password"
                   type="password"
-                  autoComplete="current-password"
+                  {...register("password", { required: true })}
                   required
                   className="relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   placeholder="Password"
@@ -64,6 +117,7 @@ const Register = () => {
             <div>
               <button
                 type="submit"
+                disabled={isFetching}
                 className="group relative flex w-full justify-center rounded-md border border-transparent bg-[#c83900] py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3">

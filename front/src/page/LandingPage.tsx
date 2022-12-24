@@ -5,34 +5,16 @@ import useModal from "../hooks/useModal";
 import styles from "../style/style";
 import { socket } from "../service/socket";
 import { FaSignInAlt } from "react-icons/fa";
-import { useSelector } from "react-redux";
-import { selectUser } from "../redux/userSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { logOut, selectUser } from "../redux/userSlice";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import bg from "../assets/image/bg-3.png";
 import PageAnimation from "../style/PageAnimation";
-
-const pageVariants = {
-  initial: {
-    x: 300,
-  },
-  enter: {
-    x: 0,
-    transition: {
-      type: "spring",
-      damping: 20,
-      mass: 1,
-    },
-  },
-  exit: {
-    x: -300,
-    transition: {
-      type: "spring",
-      damping: 20,
-      mass: 1,
-    },
-  },
-};
+import easyImg from "../assets/image/easy.png";
+import hardImg from "../assets/image/hard.png";
+import superHardImg from "../assets/image/superhard.png";
+import superEyesImg from "../assets/image/supereyes.png";
 
 const elementVariants = {
   initial: {
@@ -53,6 +35,12 @@ const elementVariants = {
     },
   },
 };
+const modeInfos = [
+  { mode: "easy", img: easyImg },
+  { mode: "hard", img: hardImg },
+  { mode: "super hard", img: superHardImg },
+  { mode: "super eyes", img: superEyesImg },
+];
 interface Room {
   _id: string;
   name: string;
@@ -63,8 +51,8 @@ interface Room {
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { userInfo } = useSelector(selectUser);
-
   const { isShowing: showSinglePlayOptions, toggle: toggleSinglePlayOptions } =
     useModal();
   const { isShowing: showMultiPlayOptions, toggle: toggleMultiPlayOptions } =
@@ -76,6 +64,7 @@ const LandingPage = () => {
 
   const [createGameInfo, setCreateGameInfo] = useState({ name: "", mode: "" });
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [showUserOptions, setShowUserOptions] = useState(false);
   useEffect(() => {
     socket.emit("get_rooms");
     // Listen for updates to the list of rooms
@@ -83,13 +72,14 @@ const LandingPage = () => {
       setRooms(newRooms);
     });
   }, []);
-
   const handleSinglePlay = () => {
     toggleSinglePlayOptions();
   };
   const handleMultiPlay = () => {
     socket.emit("get_rooms");
-    !userInfo ? navigate("/login") : toggleMultiPlayOptions();
+    !userInfo.name && !userInfo.username
+      ? navigate("/login")
+      : toggleMultiPlayOptions();
   };
   const handleGameMode = (mode: string) => {
     navigate(`/play/single/${mode}`);
@@ -104,41 +94,59 @@ const LandingPage = () => {
     socket.emit("join_room", gameRoom);
     navigate(`/play/multi/${gameRoom}/${mode}`);
   };
-  const handleMode = (e: any) => {
+  const handleMode = (modeParams: string) => {
     setCreateGameInfo((prev) => ({
       ...prev,
-      mode: e.target.innerText.toLowerCase().split(" ").join(""),
+      mode: modeParams.toLowerCase().split(" ").join(""),
     }));
   };
+
   return (
     <PageAnimation>
       <div
         className={`bg-[bg-cover relative bg-center bg-no-repeat font-sans leading-normal tracking-normal h-screen`}
       >
-        <img src={`${bg}`} alt="" className="w-full absolute h-full" />
+        <img
+          onClick={() => setShowUserOptions(false)}
+          src={`${bg}`}
+          alt=""
+          className="w-full absolute h-full"
+        />
         {userInfo && (
-          <div className=" z-10 hover:bg-blue-600 absolute top-[20px] right-[20px] text-white font-bold py-1 px-2 rounded-md flex items-center">
-            <img
-              className="w-8 h-8 rounded-full mr-4"
-              src={userInfo.picture}
-              alt="User avatar"
-            />
-            <div className="text-lg font-bold text-white">{userInfo.name}</div>
-            <div className="origin-top-right absolute right-0 top-10 mt-2 w-32 rounded-md shadow-lg">
-              <div className="bg-white rounded-md shadow-xs hidden">
-                <div className="py-1">
-                  <Link
-                    to="/player/friends"
-                    className="block px-4 py-2 text-sm font-medium leading-5 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 focus:text-gray-900"
-                  >
-                    Friends
-                  </Link>
-                  <button className="block px-4 z-10 py-2 text-sm font-medium leading-5 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 focus:text-gray-900">
-                    Logout
-                  </button>
+          <div
+            onClick={() => setShowUserOptions((prev) => !prev)}
+            className=" z-10 cursor-pointer hover:bg-blue-600 absolute top-[20px] right-[20px] text-white font-bold py-1 px-2 rounded-md flex items-center"
+          >
+            {typeof userInfo.picture === "string" && (
+              <img
+                className="w-8 h-8 rounded-full mr-4"
+                src={userInfo.picture}
+                alt=""
+              />
+            )}
+            <div className="text-lg font-bold text-white">
+              {userInfo.name || userInfo.username}
+            </div>
+            {showUserOptions && (
+              <div className="origin-top-right absolute right-0 top-10 mt-2 w-32 rounded-md shadow-lg">
+                <div className="bg-white rounded-md shadow-xs">
+                  <div className="py-1">
+                    <Link
+                      to="/player/friends"
+                      className="block text-center px-4 py-2 text-sm font-medium leading-5 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 focus:text-gray-900"
+                    >
+                      Friends
+                    </Link>
+                    <button
+                      onClick={() => dispatch(logOut())}
+                      className="w-full px-4 z-10 py-2 text-sm font-medium leading-5 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 focus:text-gray-900"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
         <div className="lg:container mx-auto px-4 h-full flex items-center justify-center">
@@ -191,32 +199,48 @@ const LandingPage = () => {
           closeButton
           hide={toggleSinglePlayOptions}
         >
-          <div className="bg-white w-[300px] h-[300px] flex flex-col justify-evenly text-center p-2">
-            <h4 className="text-blue-300 font-bold ">Play Single</h4>
+          <div className="bg-white w-[300px] rounded-lg h-[300px] md:w-[500px] md:h-[500px] flex flex-col justify-evenly text-center p-2">
+            <h4 className="text-blue-300 font-bold ">Choose Difficulty</h4>
             <div className="grid grid-cols-2 gap-2 h-3/4">
               <div
                 onClick={() => handleGameMode("easy")}
-                className="border-[rgba(0,0,0,0.2)] cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+                className="border-[rgba(0,0,0,0.2)] relative cursor-pointer border-solid border-[1px] rounded-md shadow-md"
               >
-                Easy
+                <img
+                  src={easyImg}
+                  className="absolute w-full h-full rounded-md"
+                  alt=""
+                />
               </div>
               <div
                 onClick={() => handleGameMode("hard")}
-                className="border-[rgba(0,0,0,0.2)] cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+                className="border-[rgba(0,0,0,0.2)] relative cursor-pointer border-solid border-[1px] rounded-md shadow-md"
               >
-                Hard
+                <img
+                  src={hardImg}
+                  className="absolute w-full h-full rounded-md"
+                  alt=""
+                />
               </div>
               <div
                 onClick={() => handleGameMode("superhard")}
-                className="border-[rgba(0,0,0,0.2)] cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+                className="border-[rgba(0,0,0,0.2)] relative cursor-pointer border-solid border-[1px] rounded-md shadow-md"
               >
-                Super Hard
+                <img
+                  src={superHardImg}
+                  className="absolute w-full h-full rounded-md"
+                  alt=""
+                />
               </div>
               <div
                 onClick={() => handleGameMode("supereyes")}
-                className="border-[rgba(0,0,0,0.2)] cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+                className="border-[rgba(0,0,0,0.2)] relative cursor-pointer border-solid border-[1px] rounded-md shadow-md"
               >
-                Super Eyes
+                <img
+                  src={superEyesImg}
+                  className="absolute w-full h-full rounded-md"
+                  alt=""
+                />
               </div>
             </div>
           </div>
@@ -227,17 +251,17 @@ const LandingPage = () => {
           hide={toggleMultiPlayOptions}
           closeButton
         >
-          <div className="bg-white w-[400px] h-[400px] flex flex-col justify-evenly items-center">
+          <div className="bg-white w-[300px] h-[400px] md:w-[400px] rounded-md flex flex-col justify-evenly items-center">
             <button
               onClick={() => {
                 toggleCreateOptions();
                 toggleMultiPlayOptions();
               }}
-              className="text-blue-300 font-bold w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md  rounded-md"
+              className="text-blue-300 font-bold w-3/5 md:w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md  rounded-md"
             >
               Create Game
             </button>
-            <button className="text-blue-300 font-bold w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md rounded-md ">
+            <button className="text-blue-300 font-bold w-3/5 md:w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md rounded-md ">
               Play With a Friend
             </button>
             <button
@@ -245,7 +269,7 @@ const LandingPage = () => {
                 toggleJoinGameModal();
                 toggleMultiPlayOptions();
               }}
-              className="text-blue-300 font-bold w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md rounded-md"
+              className="text-blue-300 font-bold w-3/5 md:w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md rounded-md"
             >
               Join Room
             </button>
@@ -253,11 +277,11 @@ const LandingPage = () => {
         </Modal>
         {/* Modal Create Options */}
         <Modal isShowing={showCreateOptions} hide={toggleCreateOptions}>
-          <div className="bg-white w-[300px] md:w-[400px] h-[400px] flex flex-col justify-evenly text-center">
-            <h4 className="text-blue-300 font-bold ">Create Room</h4>
-            <div className="h-2/3 flex flex-col gap-4">
+          <div className="bg-white w-[300px] h-[400px] md:w-[500px] md:h-[500px] flex flex-col justify-evenly text-center">
+            <h4 className="text-blue-300 font-bold text-lg">Create Room</h4>
+            <div className="h-3/4 flex flex-col gap-4 md:gap-8">
               <label htmlFor="create-game">
-                Enter Game Code
+                Enter Room Name
                 <input
                   id="create-game"
                   value={createGameInfo.name}
@@ -273,13 +297,17 @@ const LandingPage = () => {
               </label>
 
               <div className="grid grid-cols-2 gap-2 h-3/4 px-2">
-                {["easy", "hard", "super hard", "super eyes"].map((mode) => (
+                {modeInfos.map((modeInfo) => (
                   <div
-                    onClick={handleMode}
-                    key={mode}
-                    className="border-[rgba(0,0,0,0.2)] capitalize cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+                    onClick={() => handleMode(modeInfo.mode)}
+                    key={modeInfo.mode}
+                    className="border-[rgba(0,0,0,0.2)] relative cursor-pointer border-solid border-[1px] rounded-md shadow-md"
                   >
-                    {mode}
+                    <img
+                      src={modeInfo.img}
+                      alt="/"
+                      className="absolute w-full h-full rounded-md"
+                    />
                   </div>
                 ))}
               </div>
@@ -288,12 +316,12 @@ const LandingPage = () => {
             <div className="flex justify-evenly">
               <button
                 onClick={createGame}
-                className={`${styles.button} px-2 py-1 w-1/3 mx-auto text-black`}
+                className={`${styles.button} px-2 py-1 md:w-1/3 mx-auto text-black`}
               >
                 Create Game
               </button>
               <button
-                className={`${styles.button} px-2 py-1 w-1/3 mx-auto text-black`}
+                className={`${styles.button} px-2 py-1 md:w-1/3 mx-auto text-black`}
                 onClick={toggleCreateOptions}
               >
                 Cancel

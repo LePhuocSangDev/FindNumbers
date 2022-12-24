@@ -5,11 +5,10 @@ interface State {
   userInfo: object | null;
   isFetching: boolean;
   error: boolean;
-  users: object[];
 }
 
 interface LoginParams {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -22,7 +21,7 @@ interface RegisterParams {
 export const userLogin = createAsyncThunk(
   "auth/userLogin",
   async (params: LoginParams) => {
-    const response = await api.post("/login", params);
+    const response = await api.post("api/auth/login", params);
     return response.data;
   }
 );
@@ -30,7 +29,7 @@ export const userLogin = createAsyncThunk(
 export const registerUser = createAsyncThunk(
   "auth/userRegister",
   async (params: RegisterParams) => {
-    const response = await api.post("/register", params);
+    const response = await api.post("api/auth/register", params);
     return response.data;
   }
 );
@@ -39,7 +38,6 @@ const initialState: State = {
   userInfo: null,
   isFetching: false,
   error: false,
-  users: [],
 };
 
 export const userSlice = createSlice({
@@ -48,6 +46,9 @@ export const userSlice = createSlice({
   reducers: {
     loginGoogle: (state, action) => {
       state.userInfo = action.payload;
+    },
+    logOut: (state) => {
+      state.userInfo = null;
     },
   },
   extraReducers: (builder) => {
@@ -79,6 +80,6 @@ export const userSlice = createSlice({
 
 export const selectUser = (state: any) => state.user;
 
-export const { loginGoogle } = userSlice.actions;
+export const { loginGoogle, logOut } = userSlice.actions;
 
 export default userSlice.reducer;
