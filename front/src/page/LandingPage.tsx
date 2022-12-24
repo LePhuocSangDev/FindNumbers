@@ -10,6 +10,7 @@ import { selectUser } from "../redux/userSlice";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import bg from "../assets/image/bg-3.png";
+import PageAnimation from "../style/PageAnimation";
 
 const pageVariants = {
   initial: {
@@ -110,12 +111,8 @@ const LandingPage = () => {
     }));
   };
   return (
-    <AnimatePresence>
-      <motion.div
-        variants={pageVariants}
-        initial="initial"
-        animate="enter"
-        exit="exit"
+    <PageAnimation>
+      <div
         className={`bg-[bg-cover relative bg-center bg-no-repeat font-sans leading-normal tracking-normal h-screen`}
       >
         <img src={`${bg}`} alt="" className="w-full absolute h-full" />
@@ -145,7 +142,7 @@ const LandingPage = () => {
           </div>
         )}
         <div className="lg:container mx-auto px-4 h-full flex items-center justify-center">
-          <div className="w-4/5 md:w-[33%] top-1/2 right-1/2 translate-x-[50%] translate-y-[-50%] md:translate-x-0 md:translate-y-0 md:top-[6%] md:right-[9%] px-4 flex flex-col gap-4 h-[55%] justify-center absolute  ">
+          <div className="w-4/5 md:w-[33%] text-center top-1/2 right-1/2 translate-x-[50%] translate-y-[-50%] md:translate-x-0 md:translate-y-0 md:top-[6%] md:right-[9%] px-4 flex flex-col gap-4 h-[55%] justify-center absolute">
             <motion.h1
               variants={elementVariants}
               initial="initial"
@@ -164,7 +161,7 @@ const LandingPage = () => {
             >
               Join the fun and compete with players from around the world!
             </motion.p>
-            <div className=" gap-2 flex w-full text-sm ">
+            <div className=" gap-2 flex w-full justify-center text-sm ">
               <motion.button
                 variants={elementVariants}
                 initial="initial"
@@ -348,8 +345,8 @@ const LandingPage = () => {
             </div>
           </div>
         </Modal>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </PageAnimation>
   );
 };
 
