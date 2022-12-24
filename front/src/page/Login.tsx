@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AiFillLock } from "react-icons/ai";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import useModal from "../hooks/useModal";
 
@@ -11,6 +11,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { loginGoogle, selectUser } from "../redux/userSlice";
+import loginBg from "../assets/image/bg-1.png";
 
 const schema = yup
   .object({
@@ -29,7 +30,7 @@ const schema = yup
 
 const Login = () => {
   const { isShowing, toggle } = useModal();
-
+  const navigate = useNavigate();
   const {
     resetField,
     register,
@@ -46,6 +47,10 @@ const Login = () => {
   const dispatch = useDispatch();
   const { userInfo } = useSelector(selectUser);
   console.log(userInfo);
+
+  useEffect(() => {
+    userInfo !== null && navigate("/");
+  }, [userInfo]);
 
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -67,18 +72,12 @@ const Login = () => {
   // };
 
   return (
-    <div className="flex min-h-full h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 bg-white p-4 rounded-md">
-        <div>
-          <img
-            className="mx-auto h-12 w-auto"
-            src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
-            alt="Your Company"
-          />
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-            Sign in to your account
-          </h2>
-        </div>
+    <div className="flex min-h-full h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      <img src={loginBg} alt="" className="absolute w-full h-full" />
+      <div className="w-full max-w-sm space-y-4 p-4 absolute">
+        <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-white">
+          Please Log In to Play
+        </h2>
         <form
           onSubmit={handleSubmit((data) => {
             resetField("username");
@@ -125,7 +124,7 @@ const Login = () => {
               <a
                 onClick={() => toggle()}
                 href="#"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                className="text-[#fbc2d7] font-bold hover:text-[#fbc2d7]"
               >
                 Forgot your password?
               </a>
@@ -134,7 +133,7 @@ const Login = () => {
             <div className="text-sm">
               <Link
                 to="/register"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                className="text-[#fbc2d7] font-bold hover:text-[#fbc2d7]"
               >
                 Sign up
               </Link>
@@ -144,11 +143,11 @@ const Login = () => {
           <div>
             <button
               type="submit"
-              className="group relative flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="group relative flex w-full justify-center rounded-md border border-transparent bg-[#c83900] py-2 px-4 text-md font-medium text-[#fbc2d7] hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
               <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                 <AiFillLock
-                  className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400"
+                  className="h-5 w-5 text-[#fbc2d7] group-hover:text-[#a9637c]"
                   aria-hidden="true"
                 />
               </span>
@@ -158,20 +157,20 @@ const Login = () => {
         </form>
         <div className="flex items-center space-x-4">
           <hr className="w-full border border-gray-300" />
-          <div className="font-semibold text-gray-400">OR</div>
+          <div className="font-semibold text-white">OR</div>
           <hr className="w-full border border-gray-300" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <a
             href="#"
-            className="text-center rounded-2xl border-b-2 border-b-gray-300 bg-white py-2.5 px-4 font-bold text-blue-700 ring-2 ring-gray-300 hover:bg-gray-200 active:translate-y-[0.125rem] active:border-b-gray-200"
+            className="text-center rounded-2xl bg-[#1cb0b0] py-2.5 px-4 font-bold text-[#fbcdd6] hover:bg-gray-200 active:translate-y-[0.125rem] active:border-b-gray-200"
           >
             FACEBOOK
           </a>
           <a
             href="#"
             onClick={() => googleLogin()}
-            className="text-center rounded-2xl border-b-2 border-b-gray-300 bg-white py-2.5 px-4 font-bold text-blue-500 ring-2 ring-gray-300 hover:bg-gray-200 active:translate-y-[0.125rem] active:border-b-gray-200"
+            className="text-center rounded-2xl  bg-[#971fbc] py-2.5 px-4 font-bold text-[#fbcdd6] hover:bg-gray-200 active:translate-y-[0.125rem] active:border-b-gray-200"
           >
             GOOGLE
           </a>
@@ -197,13 +196,13 @@ const Login = () => {
             <form className="px-8 pt-6 pb-8 mb-4 bg-white rounded">
               <div className="mb-4">
                 <label
-                  className="block mb-2 text-sm font-bold text-gray-700"
+                  className="block mb-2 text-sm font-bold text-black"
                   htmlFor="email"
                 >
                   Email
                 </label>
                 <input
-                  className="w-full px-3 py-2 text-sm leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+                  className="w-full px-3 py-2 text-sm leading-tight bg-[#2b0d13] text-black border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
                   id="email"
                   type="email"
                   placeholder="Enter Email Address..."

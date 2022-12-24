@@ -508,8 +508,11 @@ rotate: 150deg
 
 
 
-.chosen {
+.chosen-1 {
    border: 2px solid #0eb7da
+}
+.chosen-2 {
+   border: 2px solid #bf0e0b
 }
 
 .help::before {

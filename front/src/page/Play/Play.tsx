@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  LegacyRef,
+  MutableRefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { socket } from "../../service/socket";
 import Chat from "../../components/Chat";
 import Modal from "../../components/Modal";
@@ -12,10 +18,18 @@ import { lines, mode1, mode2 } from "../../data/data";
 import { selectUser } from "../../redux/userSlice";
 import { useSelector } from "react-redux";
 
+interface GameData {
+  chosenNumber: number;
+  points: number;
+  room: string;
+  player: string;
+}
+
 const Play = ({ type }: { type: string }) => {
   const navigate = useNavigate();
   const { mode, room } = useParams();
-  const {userInfo} = useSelector(selectUser)
+  const { userInfo } = useSelector(selectUser);
+  const buttonRef: LegacyRef<HTMLButtonElement> | undefined = useRef() as any;
   const { isShowing: showConfirmBack, toggle: toggleConfirmBack } = useModal();
   const { isShowing: showSetting, toggle: toggleSetting } = useModal();
   const { isShowing: showConfirmReplay, toggle: toggleConfirmReplay } =
@@ -29,7 +43,9 @@ const Play = ({ type }: { type: string }) => {
   const [hours, setHours] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [music] = useState(new Audio(audio));
-  const [gameData,setGameData] = useState();
+  // const [gameData, setGameData] = useState<GameData[]>([]);
+  const [gameData, setGameData] = useState<GameData>();
+  const [playerNum, setPlayerNum] = useState<number[]>([]);
   const [reOrderArray, setReOrderArray] = useState<number[]>(mode1);
   const buttonsCollections = document.getElementsByTagName("button");
   var buttons = Array.from(buttonsCollections);
@@ -77,22 +93,24 @@ const Play = ({ type }: { type: string }) => {
     if (mode === "easy") {
       sufferArray();
     }
-    if (mode === "superHard") {
+    if (mode === "superhard") {
       interval = setInterval(() => sufferArray(), 15000);
     }
-    if (mode === "superEyes") {
+    if (mode === "supereyes") {
       interval = setInterval(() => sufferArray(), 5000);
     }
     return () => clearInterval(interval);
   }, []);
   useEffect(() => {
     socket.on("receive_gameData", (data) => {
-      console.log(data)
+      setGameData(data);
+      setPlayerNum((prev) => [...prev, data.chosenNumber]);
+      setCurrentNumber((prevCurrent) => prevCurrent + 1);
     });
     return () => {
-      socket.off("receive_message");
+      socket.off("receive_gameData");
     };
-  }, []);
+  }, [socket]);
   const sufferArray = () => {
     let shuffled = mode1
       .map((value) => ({ value, sort: Math.random() })) // put each element in the array in an object, and give it a random sort key
@@ -106,18 +124,19 @@ const Play = ({ type }: { type: string }) => {
   ) => {
     if (number === currentNumber + 1) {
       // e.currentTarget.classList.add("spin");
-      e.currentTarget.classList.add("chosen");
+      e.currentTarget.classList.add("chosen-1");
       setCurrentNumber((prevCurrent) => prevCurrent + 1);
       setPoints((prevPoints) => prevPoints + 1);
-      const gameData = { 
-        chosenNumber: number,        
+      const gameData = {
+        chosenNumber: number,
         points: points + 1,
-        room: room, 
+        room: room,
         player: userInfo.name || "no one",
       };
       await socket.emit("send_gameData", gameData);
     }
   };
+
   const handleHint = (): void => {
     const targetNumber = currentNumber + 1;
     const targetButton = buttons.find(
@@ -139,9 +158,11 @@ const Play = ({ type }: { type: string }) => {
         {reOrderArray.map((num, index) => (
           <button
             id={`number-${index + 1}`}
-            className={`button ${
-              mode === "easy" ? "mode-easy" : ""
-            } z-[10] circle text-md md:text-2xl flex justify-center items-center absolute rounded-[50%] p-1 w-7 h-7 md:w-12 md:h-12 focus-visible:outline-none`}
+            ref={buttonRef}
+            className={`button ${mode === "easy" ? "mode-easy" : ""} ${
+              playerNum.some((chosenNumber) => chosenNumber === num) &&
+              "chosen-2"
+            }  z-[10] circle text-md md:text-2xl flex justify-center items-center absolute rounded-[50%] p-1 w-7 h-7 md:w-12 md:h-12 focus-visible:outline-none`}
             key={num}
             onClick={(e) => handleChooseNumber(e, num)}
           >
@@ -203,7 +224,10 @@ const Play = ({ type }: { type: string }) => {
           <p>Do you want to go back?</p>
           <div className="flex justify-evenly">
             <button
-              onClick={() => navigate("/")}
+              onClick={() => {
+                navigate("/");
+                socket.emit("leave_room", room);
+              }}
               className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
             >
               Yes
