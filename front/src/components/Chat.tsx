@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { socket } from "../service/socket";
 import ScrollToBottom from "react-scroll-to-bottom";
 import { useSelector } from "react-redux";
 import { selectUser } from "../redux/userSlice";
-
 interface Message {
   room: string;
   message: string;
   author: string;
   time: Date;
+  picture: string;
 }
 const Chat = () => {
   const { userInfo } = useSelector(selectUser);
@@ -26,8 +26,8 @@ const Chat = () => {
           message: currentMessage,
           author: userInfo.name || " no one",
           time: new Date(),
+          picture: userInfo.picture,
         };
-
         await socket.emit("send_message", messageData);
         setMessageList((list) => [...list, messageData]);
         setCurrentMessage("");
@@ -41,11 +41,19 @@ const Chat = () => {
     socket.on("receive_message", (data: Message) => {
       setMessageList((list) => [...list, data]);
     });
+    socket.on("update_messages", (previousMessages) => {
+      setMessageList(previousMessages);
+    });
+    socket.on("user_left", (id) => {
+      if (Notification.permission === "granted") {
+        new Notification(`User ${id} has left the room`);
+      }
+    });
     return () => {
       socket.off("receive_message");
     };
   }, []);
-  console.log(messageList);
+
   return (
     <div className="flex-1 w-full">
       <div className="flex sm:items-center justify-between py-3 border-b-2 border-gray-200"></div>
@@ -58,7 +66,9 @@ const Chat = () => {
             <div key={index} className="chat-message pb-2">
               <div
                 className={`flex items-end ${
-                  userInfo.name === msg.author ? "justify-end" : "justify-start"
+                  userInfo?.name === msg.author
+                    ? "justify-end"
+                    : "justify-start"
                 }  `}
               >
                 <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
@@ -67,16 +77,19 @@ const Chat = () => {
                       className={`px-4 py-2 rounded-lg inline-block ${
                         userInfo.name === msg.author
                           ? "bg-white text-black rounded-br-none"
-                          : "bg-blue-600 rounded-bl-none"
-                      }  text-white`}
+                          : "bg-blue-600 rounded-bl-none text-white"
+                      } `}
                     >
                       {msg.message}
                     </span>
                   </div>
                 </div>
                 <img
-                  src="https://images.unsplash.com/photo-1590031905470-a1a1feacbb0b?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-                  alt="My profile"
+                  src={
+                    userInfo.name === msg.author
+                      ? userInfo.picture
+                      : msg.picture
+                  }
                   className={`w-6 h-6 rounded-full ${
                     userInfo.name === msg.author ? "order-2" : "order-2/"
                   } order-2/`}

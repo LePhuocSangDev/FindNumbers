@@ -8,9 +8,10 @@ import ErrorPage from "./page/ErrorPage";
 import Register from "./page/Register";
 import { PersistGate } from "redux-persist/integration/react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { Provider } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import { persistor, store } from "./redux/store";
 import LandingPage from "./page/LandingPage";
+import { ToastContainer } from "react-toastify";
 
 const router = createBrowserRouter([
   {
@@ -37,7 +38,7 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "/play/multi/:room",
+    path: "/play/multi/:room/:mode",
     element: <Play type="multi" />,
   },
 ]);
@@ -51,6 +52,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
           }
         >
           <RouterProvider router={router} />
+          {/* <ToastContainer position="bottom-right" autoClose={3000} /> */}
         </GoogleOAuthProvider>
       </PersistGate>
     </Provider>

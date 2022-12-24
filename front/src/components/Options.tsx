@@ -4,6 +4,8 @@ import { TfiReload } from "react-icons/tfi";
 import { IoMdArrowBack } from "react-icons/io";
 import { FcAlarmClock } from "react-icons/fc";
 import { BiSearchAlt } from "react-icons/bi";
+import { socket } from "../service/socket";
+import { useParams } from "react-router-dom";
 
 interface OptionsPros {
   points: number;
@@ -35,6 +37,7 @@ const Options = ({
   togglePause,
   type,
 }: OptionsPros) => {
+  const { room } = useParams();
   return (
     <div className="flex flex-col relative justify-center w-full flex-1 gap-12">
       <div className="flex items-center gap-8">
@@ -67,6 +70,7 @@ const Options = ({
         onClick={() => {
           toggleResult();
           togglePause();
+          socket.emit("leave_room", room);
         }}
         className="bg-[#413e3c] text-yellow-500 p-2 w-2/3 self-center"
       >
