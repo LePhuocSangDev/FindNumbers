@@ -17,6 +17,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { lines, mode1, mode2 } from "../../data/data";
 import { selectUser } from "../../redux/userSlice";
 import { useSelector } from "react-redux";
+import PageAnimation from "../../style/PageAnimation";
 
 interface GameData {
   chosenNumber: number;
@@ -153,143 +154,146 @@ const Play = ({ type }: { type: string }) => {
     setIsPaused((prevIsPaused) => !prevIsPaused);
   };
   return (
-    <div className="flex gap-6 flex-col md:flex-row md:h-screen py-2 px-4 md:px-8 md:py-4">
-      <div className="bg-white w-full md:w-5/6 relative h-[70vh] md:h-full rounded-xl">
-        {reOrderArray.map((num, index) => (
-          <button
-            id={`number-${index + 1}`}
-            ref={buttonRef}
-            className={`button ${mode === "easy" ? "mode-easy" : ""} ${
-              playerNum.some((chosenNumber) => chosenNumber === num) &&
-              "chosen-2"
-            }  z-[10] circle text-md md:text-2xl flex justify-center items-center absolute rounded-[50%] p-1 w-7 h-7 md:w-12 md:h-12 focus-visible:outline-none`}
-            key={num}
-            onClick={(e) => handleChooseNumber(e, num)}
-          >
-            {num}
-          </button>
-        ))}
-        {lines.map((line) => (
-          <div
-            key={line}
-            id={`line-${line}`}
-            className={`w-full h-[2px] bg-blue-200 absolute`}
-          ></div>
-        ))}
+    <PageAnimation>
+      <div className="flex gap-6 flex-col md:flex-row h-auto md:h-screen py-2 px-4 md:px-8 md:py-4">
+        <div className="bg-white w-full md:w-5/6 relative h-screen md:h-full rounded-xl">
+          {reOrderArray.map((num, index) => (
+            <button
+              id={`number-${index + 1}`}
+              ref={buttonRef}
+              className={`button ${mode === "easy" ? "mode-easy" : ""} ${
+                playerNum.some((chosenNumber) => chosenNumber === num) &&
+                "chosen-2"
+              }  z-[10] circle text-md md:text-2xl flex justify-center items-center absolute rounded-[50%] p-1 w-7 h-7 md:w-12 md:h-12 focus-visible:outline-none`}
+              key={num}
+              onClick={(e) => handleChooseNumber(e, num)}
+            >
+              {num}
+            </button>
+          ))}
+          {lines.map((line) => (
+            <div
+              key={line}
+              id={`line-${line}`}
+              className={`w-full h-[2px] bg-blue-200 absolute`}
+            ></div>
+          ))}
+        </div>
+        <div
+          className={`p:2 justify-between flex items-center w-full md:w-1/6 min-w-[200px] h-full ${
+            type === "multi" && "flex-col"
+          }`}
+        >
+          <Options
+            points={points}
+            sufferArray={sufferArray}
+            handleHint={handleHint}
+            currentNumber={currentNumber}
+            toggleConfirmBack={toggleConfirmBack}
+            toggleSetting={toggleSetting}
+            toggleConfirmReplay={toggleConfirmReplay}
+            toggleResult={toggleResult}
+            type={type}
+            minute={minutes}
+            second={seconds}
+            hour={hours}
+            togglePause={togglePause}
+          />
+          {type === "single" ? "" : <Chat />}
+        </div>
+        <Modal isShowing={showSetting} hide={toggleSetting}>
+          <div className="bg-white w-[200px] h-[150px] flex flex-col justify-evenly text-center">
+            <h4 className="text-blue-300 font-bold ">OPTIONS</h4>
+            <div className="flex justify-evenly">
+              <label htmlFor="dark-mode">
+                <input id="dark-mode" type="checkbox" /> Night
+              </label>
+              <label htmlFor="sound">
+                <input id="sound" type="checkbox" onChange={handleSound} />{" "}
+                Sound
+              </label>
+            </div>
+            <button
+              onClick={toggleSetting}
+              className={`${style.button} px-2 py-1 w-1/2 mx-auto text-black`}
+            >
+              Ok
+            </button>
+          </div>
+        </Modal>
+        <Modal isShowing={showConfirmBack} hide={toggleConfirmBack}>
+          <div className="bg-white w-[200px] h-[150px] flex flex-col justify-evenly text-center">
+            <h4 className="text-blue-300 font-bold ">MESSAGE</h4>
+            <p>Do you want to go back?</p>
+            <div className="flex justify-evenly">
+              <button
+                onClick={() => {
+                  navigate("/");
+                  socket.emit("leave_room", room);
+                }}
+                className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
+              >
+                Yes
+              </button>
+              <button
+                onClick={toggleConfirmBack}
+                className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </Modal>
+        <Modal isShowing={showConfirmReplay} hide={toggleConfirmReplay}>
+          <div className="bg-white w-[200px] h-[150px] flex flex-col justify-evenly text-center">
+            <h4 className="text-blue-300 font-bold ">MESSAGE</h4>
+            <p>Do you want to replay?</p>
+            <div className="flex justify-evenly">
+              <button
+                onClick={() => {
+                  location.reload();
+                }}
+                className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
+              >
+                Yes
+              </button>
+              <button
+                onClick={toggleConfirmReplay}
+                className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </Modal>
+        <Modal isShowing={showResult} hide={toggleResult}>
+          <div className="bg-white w-[250px] h-[180px] flex flex-col justify-evenly text-center">
+            <h4 className="text-blue-300 font-bold ">YOUR SCORE</h4>
+            <div className="px-2">
+              You get <span className="text-yellow-500">{points}</span> points
+              in <span>{minutes === 0 ? "" : minutes + " minutes and "}</span>
+              <span>{seconds} seconds</span>
+            </div>
+            <div className="flex justify-evenly">
+              <button
+                onClick={() => {
+                  location.reload();
+                }}
+                className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
+              >
+                Play Again
+              </button>
+              <button
+                onClick={() => navigate("/")}
+                className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </Modal>
       </div>
-      <div
-        className={`p:2 justify-between flex items-center w-full md:w-1/6 min-w-[200px] h-full ${
-          type === "multi" && "flex-col"
-        }`}
-      >
-        <Options
-          points={points}
-          sufferArray={sufferArray}
-          handleHint={handleHint}
-          currentNumber={currentNumber}
-          toggleConfirmBack={toggleConfirmBack}
-          toggleSetting={toggleSetting}
-          toggleConfirmReplay={toggleConfirmReplay}
-          toggleResult={toggleResult}
-          type={type}
-          minute={minutes}
-          second={seconds}
-          hour={hours}
-          togglePause={togglePause}
-        />
-        {type === "single" ? "" : <Chat />}
-      </div>
-      <Modal isShowing={showSetting} hide={toggleSetting}>
-        <div className="bg-white w-[200px] h-[150px] flex flex-col justify-evenly text-center">
-          <h4 className="text-blue-300 font-bold ">OPTIONS</h4>
-          <div className="flex justify-evenly">
-            <label htmlFor="dark-mode">
-              <input id="dark-mode" type="checkbox" /> Night
-            </label>
-            <label htmlFor="sound">
-              <input id="sound" type="checkbox" onChange={handleSound} /> Sound
-            </label>
-          </div>
-          <button
-            onClick={toggleSetting}
-            className={`${style.button} px-2 py-1 w-1/2 mx-auto text-black`}
-          >
-            Ok
-          </button>
-        </div>
-      </Modal>
-      <Modal isShowing={showConfirmBack} hide={toggleConfirmBack}>
-        <div className="bg-white w-[200px] h-[150px] flex flex-col justify-evenly text-center">
-          <h4 className="text-blue-300 font-bold ">MESSAGE</h4>
-          <p>Do you want to go back?</p>
-          <div className="flex justify-evenly">
-            <button
-              onClick={() => {
-                navigate("/");
-                socket.emit("leave_room", room);
-              }}
-              className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
-            >
-              Yes
-            </button>
-            <button
-              onClick={toggleConfirmBack}
-              className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
-            >
-              No
-            </button>
-          </div>
-        </div>
-      </Modal>
-      <Modal isShowing={showConfirmReplay} hide={toggleConfirmReplay}>
-        <div className="bg-white w-[200px] h-[150px] flex flex-col justify-evenly text-center">
-          <h4 className="text-blue-300 font-bold ">MESSAGE</h4>
-          <p>Do you want to replay?</p>
-          <div className="flex justify-evenly">
-            <button
-              onClick={() => {
-                location.reload();
-              }}
-              className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
-            >
-              Yes
-            </button>
-            <button
-              onClick={toggleConfirmReplay}
-              className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
-            >
-              No
-            </button>
-          </div>
-        </div>
-      </Modal>
-      <Modal isShowing={showResult} hide={toggleResult}>
-        <div className="bg-white w-[250px] h-[180px] flex flex-col justify-evenly text-center">
-          <h4 className="text-blue-300 font-bold ">YOUR SCORE</h4>
-          <div className="px-2">
-            You get <span className="text-yellow-500">{points}</span> points in{" "}
-            <span>{minutes === 0 ? "" : minutes + " minutes and "}</span>
-            <span>{seconds} seconds</span>
-          </div>
-          <div className="flex justify-evenly">
-            <button
-              onClick={() => {
-                location.reload();
-              }}
-              className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
-            >
-              Play Again
-            </button>
-            <button
-              onClick={() => navigate("/")}
-              className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-      </Modal>
-    </div>
+    </PageAnimation>
   );
 };
 
