@@ -1,7 +1,7 @@
 import { loginUser, logout, registerUser } from "../controller/auth";
+import express from "express";
 
-const router = require("express").Router();
-
+const router = express.Router();
 
 //REGISTER
 router.post("/register", registerUser);

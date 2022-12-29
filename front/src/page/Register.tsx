@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { AiFillLock } from "react-icons/ai";
 import { Link, useNavigate } from "react-router-dom";
 import loginBg from "../assets/image/bg-1.png";
@@ -9,28 +9,31 @@ import * as yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { registerUser } from "../redux/userSlice";
 import { AppThunk } from "redux-toolkit";
+import Modal from "../components/Modal";
+import useModal from "../hooks/useModal";
 
 const schema = yup
   .object({
     username: yup
       .string()
-      .min(5, "Vui lòng nhập tối thiểu 5 kí tự")
-      .max(25, "Vui lòng nhập tối đa 25 kí tự")
-      .required("Vui lòng không để trống"),
+      .min(5, "Please enter at least 5 characters")
+      .max(25, "Please enter at least 5 characters")
+      .required("This field is required"),
     email: yup
       .string()
-      .email("Email không đúng chuẩn, ví dụ: youremail@example.com")
-      .required("Vui lòng không để trống"),
+      .email("Non-standard email, example: youremail@example.com")
+      .required("This field is required"),
     password: yup
       .string()
-      .min(5, "Vui lòng nhập tối thiểu 5 kí tự")
-      .max(25, "Vui lòng nhập tối đa 25 kí tự")
-      .required("Vui lòng không để trống"),
+      .min(5, "Please enter at least 5 characters")
+      .max(25, "Please enter at least 5 characters")
+      .required("This field is required"),
   })
   .required();
 
 const Register = () => {
   const navigate = useNavigate();
+  const [picture, setPicture] = useState("");
   const {
     resetField,
     register,
@@ -45,12 +48,26 @@ const Register = () => {
     },
   });
   const dispatch: (action: any) => void = useDispatch();
-  const { isFetching } = useSelector((state: any) => state.user);
-  const { userInfo } = useSelector((state: any) => state.user);
+  const { userInfo, isFetching } = useSelector((state: any) => state.user);
+  const { isShowing: showLoading, toggle: toggleLoading } = useModal();
 
   useEffect(() => {
     userInfo !== null && navigate("/");
   }, [userInfo]);
+  // useEffect(() => {
+  //   isFetching && toggleLoading();
+  //   !isFetching && toggleLoading();
+  // }, [isFetching]);
+  const handleImageChange = (e: any) => {
+    const file = e.target.files[0];
+    const Reader = new FileReader();
+    Reader.readAsDataURL(file);
+    Reader.onload = () => {
+      if (Reader.readyState === 2) {
+        typeof Reader.result === "string" && setPicture(Reader.result);
+      }
+    };
+  };
 
   return (
     <PageAnimation>
@@ -63,8 +80,7 @@ const Register = () => {
 
           <form
             onSubmit={handleSubmit((data) => {
-              dispatch(registerUser(data));
-              console.log(data);
+              dispatch(registerUser({ ...data, picture: picture }));
               resetField("username");
               resetField("email");
               resetField("password");
@@ -73,17 +89,30 @@ const Register = () => {
           >
             <input type="hidden" name="remember" defaultValue="true" />
             <div className="-space-y-px rounded-md shadow-sm flex flex-col gap-2">
+              <div className="flex gap-4">
+                <label htmlFor="avatar" className="text-white text-lg">
+                  Avatar:
+                </label>
+                <input
+                  type="file"
+                  id="avatar"
+                  accept="image/*"
+                  required
+                  onChange={handleImageChange}
+                />
+              </div>
               <div>
-                <label htmlFor="email-address" className="sr-only">
+                <label htmlFor="username" className="sr-only">
                   Username
                 </label>
                 <input
-                  id="email-address"
+                  id="username"
                   {...register("username", { required: true })}
                   required
                   className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   placeholder="Enter Username"
                 />
+                <p className="text-red-600">{errors.username?.message}</p>
               </div>
               <div>
                 <label htmlFor="email-address" className="sr-only">
@@ -93,11 +122,10 @@ const Register = () => {
                   id="email-address"
                   type="email"
                   {...register("email", { required: true })}
-                  autoComplete="email"
-                  required
                   className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   placeholder="Enter Email address"
                 />
+                <p className="text-red-600">{errors.email?.message}</p>
               </div>
               <div>
                 <label htmlFor="password" className="sr-only">
@@ -107,10 +135,10 @@ const Register = () => {
                   id="password"
                   type="password"
                   {...register("password", { required: true })}
-                  required
                   className="relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   placeholder="Password"
                 />
+                <p className="text-red-600">{errors.password?.message}</p>
               </div>
             </div>
 
@@ -142,6 +170,9 @@ const Register = () => {
           </div>
         </div>
       </div>
+      <Modal isShowing={showLoading} hide={toggleLoading}>
+        <div></div>
+      </Modal>
     </PageAnimation>
   );
 };

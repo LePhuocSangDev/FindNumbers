@@ -3,11 +3,20 @@ import { Request, Response } from "express";
 import User from "../models/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+const cloudinary = require("cloudinary");
+const fs = require("fs");
+
+interface User {
+  username: string;
+  email: string;
+  password: string;
+  picture: string;
+}
 
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   const user: any = await User.findOne({ username: req.body.username });
   if (!user) {
-    res.status(401).json({ message: "Username does not exist in the DB" });
+    res.status(401).json({ message: "Username does not exist" });
     return;
   }
 
@@ -16,7 +25,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     user.password
   );
   if (!isPasswordValid) {
-    res.status(401).json({ message: "Wrong credentials!" });
+    res.status(401).json({ message: "Wrong password!" });
     return;
   }
 
@@ -30,7 +39,9 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 export const registerUser: RequestHandler = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
-
+    const myCloud = await cloudinary.v2.uploader.upload(req.body.picture, {
+      folder: "avatars",
+    });
     const userExists = await User.findOne({ username: req.body.username });
     if (userExists) {
       res.status(401).json("User already exists");
@@ -39,6 +50,7 @@ export const registerUser: RequestHandler = async (req, res) => {
         username: req.body.username,
         email: req.body.email,
         password: hashedPassword,
+        picture: myCloud.secure_url,
       });
 
       const savedUser: any = await newUser.save();

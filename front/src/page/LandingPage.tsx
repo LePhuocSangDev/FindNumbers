@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import useModal from "../hooks/useModal";
-import styles from "../style/style";
+import style from "../style/style";
 import { socket } from "../service/socket";
 import { useDispatch, useSelector } from "react-redux";
 import { logOut, selectUser } from "../redux/userSlice";
@@ -12,8 +12,13 @@ import bg from "../assets/image/bg-3.png";
 import PageAnimation from "../style/PageAnimation";
 import easyImg from "../assets/image/easy.png";
 import hardImg from "../assets/image/hard.png";
+import roomImg from "../assets/image/room.png";
 import superHardImg from "../assets/image/superhard.png";
 import superEyesImg from "../assets/image/supereyes.png";
+import { GiAmericanFootballPlayer } from "react-icons/gi";
+import { BsFillPersonFill, BsFillCheckCircleFill } from "react-icons/bs";
+import { useAlert } from "react-alert";
+import { string } from "yup";
 
 const elementVariants = {
   initial: {
@@ -51,6 +56,7 @@ interface Room {
 const LandingPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const alert = useAlert();
   const { userInfo } = useSelector(selectUser);
   const { isShowing: showSinglePlayOptions, toggle: toggleSinglePlayOptions } =
     useModal();
@@ -60,20 +66,107 @@ const LandingPage = () => {
     useModal();
   const { isShowing: showJoinGameModal, toggle: toggleJoinGameModal } =
     useModal();
+  const { isShowing: showInRoomModal, toggle: toggleInRoomModal } = useModal();
 
   const [createGameInfo, setCreateGameInfo] = useState({ name: "", mode: "" });
   const [rooms, setRooms] = useState<Room[]>([]);
+
+  const [roomName, setRoomName] = useState("");
+  const [roomMode, setRoomMode] = useState("");
+  const [isReady, setIsReady] = useState(false);
+  const [gameStart, setGameStart] = useState(false);
+  const [numberOfReady, setNumberOfReady] = useState(0);
+  const [secondPlayerReady, setSecondPlayerReady] = useState(false);
+  const [players, setPlayers] = useState<String[]>([]);
+  // const [secondPlayer, setSecondPlayer] = useState("");
+  // const [firstPlayer, setFirstPlayer] = useState("");
   const [showUserOptions, setShowUserOptions] = useState(false);
+  const [notify, setNotify] = useState("");
   useEffect(() => {
     socket.emit("get_rooms");
     // Listen for updates to the list of rooms
     socket.on("update_rooms", (newRooms) => {
-      setRooms(newRooms);
+      // setRooms(newRooms);
+      if (Array.isArray(newRooms)) {
+        setRooms(newRooms);
+      } else {
+        if (rooms.length > 0) {
+          const roomIndex = rooms.findIndex(
+            (room) => room.name === newRooms.name
+          );
+          const updatedRoom = rooms.filter((_, index) => index !== roomIndex);
+          updatedRoom.push(newRooms);
+          setRooms(updatedRoom);
+          console.log(updatedRoom, "asdf");
+        }
+      }
+    });
+    socket.on("error", (err) => {
+      toast.error(err);
     });
   }, []);
+  useEffect(() => {
+    socket.on("user_left", (data) => {
+      setNotify(data.message);
+      console.log(data.message);
+    });
+    socket.on("user_joined", (data) => {
+      // setSecondPlayer(data.player);
+      setNotify(`${data.player} has joined`);
+      setPlayers((prevPlayers) => [prevPlayers, data.player]);
+      // const roomIndex = rooms.findIndex(
+      //   (r) =>
+      //     r.players.filter((player) => player === data.userId) === data.userId
+      // );
+      // if (rooms[roomIndex].players.length === 1) {
+      //   setSecondPlayer(data.player);
+      //   setFirstPlayer(userInfo.username);
+      //   console.log("f");
+      // } else {
+      //   setFirstPlayer(data.player);
+      //   setSecondPlayer(userInfo.username);
+      //   console.log("s");
+      // }
+    });
+    // console.log(firstPlayer, secondPlayer);
+    // console.log(players);
+    socket.on("playerReady", (playerReady) => {
+      if (playerReady.name) {
+        (playerReady.name !== userInfo.username ||
+          playerReady.name !== userInfo.name) &&
+          setSecondPlayerReady(true);
+      }
+      setNumberOfReady(playerReady.numberOfReady);
+    });
+    console.log(rooms);
+    socket.on("game_start", () => {
+      const mode = localStorage.getItem("roomMode");
+      const roomName = localStorage.getItem("roomName");
+      if (mode && roomName) {
+        const m = mode.replace(/"/g, ""); // change "abc" to abc
+        const r = roomName.replace(/"/g, "");
+        navigate(`/play/multi/${r}/${m}`);
+      } else {
+        console.log("error");
+      }
+    });
+
+    return () => {
+      socket.off("user_joined");
+      socket.off("user_left");
+    };
+  }, [socket]);
+  useEffect(() => {
+    window.localStorage.setItem("roomName", JSON.stringify(roomName));
+    window.localStorage.setItem("roomMode", JSON.stringify(roomMode));
+  }, [roomName, roomMode]);
+
   const handleSinglePlay = () => {
     toggleSinglePlayOptions();
   };
+  // useEffect(() => {
+  //   alert.show(notify);
+  // }, [notify]);
   const handleMultiPlay = () => {
     socket.emit("get_rooms");
     !userInfo ? navigate("/login") : toggleMultiPlayOptions();
@@ -84,18 +177,47 @@ const LandingPage = () => {
   const createGame = () => {
     if (createGameInfo.name !== "" && createGameInfo.mode !== "") {
       socket.emit("create_room", createGameInfo);
-      navigate(`/play/multi/${createGameInfo.name}/${createGameInfo.mode}`);
+      socket.emit("join_room", {
+        name: createGameInfo.name,
+        player: userInfo.username || userInfo.name,
+      });
+      toggleInRoomModal();
+      setRoomName(createGameInfo.name);
+      setRoomMode(createGameInfo.mode);
+      toggleCreateOptions();
     } else console.log("error");
   };
-  const joinRoom = (gameRoom: string, mode: string) => {
-    socket.emit("join_room", gameRoom);
-    navigate(`/play/multi/${gameRoom}/${mode}`);
+  const joinRoom = (
+    gameRoom: { name: string; player: string },
+    mode: string
+  ) => {
+    if (gameRoom.name !== "") {
+      socket.emit("join_room", gameRoom);
+      toggleInRoomModal();
+      toggleJoinGameModal();
+      setRoomName(gameRoom.name);
+      setRoomMode(mode);
+      // navigate(`/play/multi/${gameRoom.name}/${mode}`);
+    }
+  };
+  const joinRoomByNumber = (gameRoom: string) => {
+    if (gameRoom !== "") {
+      socket.emit("join_room", gameRoom);
+    }
   };
   const handleMode = (modeParams: string) => {
     setCreateGameInfo((prev) => ({
       ...prev,
       mode: modeParams.toLowerCase().split(" ").join(""),
     }));
+  };
+  const handleReady = () => {
+    setIsReady(true);
+    socket.emit("ready", {
+      name: userInfo.username || userInfo.name,
+      roomName: roomName,
+    });
+    numberOfReady >= 1 && navigate(`/play/multi/${roomName}/${roomMode}`);
   };
 
   return (
@@ -313,12 +435,12 @@ const LandingPage = () => {
             <div className="flex justify-evenly">
               <button
                 onClick={createGame}
-                className={`${styles.button} px-2 py-1 md:w-1/3 mx-auto text-black`}
+                className={`${style.button} px-2 py-1 md:w-1/3 mx-auto text-black`}
               >
                 Create Game
               </button>
               <button
-                className={`${styles.button} px-2 py-1 md:w-1/3 mx-auto text-black`}
+                className={`${style.button} px-2 py-1 md:w-1/3 mx-auto text-black`}
                 onClick={toggleCreateOptions}
               >
                 Cancel
@@ -332,41 +454,117 @@ const LandingPage = () => {
           closeButton
           hide={toggleJoinGameModal}
         >
-          <div className="bg-white py-4 px-2 w-[300px] md:w-[500px] lg:w-[700px] h-[400px] md:h-[500px] lg:h-[500px] flex flex-col gap-4 text-center">
+          <div className="bg-white py-4 px-2 w-[300px] md:w-[500px] h-[400px] md:h-[500px] lg:h-[500px] flex flex-col gap-4 text-center">
             <h4 className="text-blue-300 font-bold text-2xl ">Join Room</h4>
             <label
               htmlFor="create-game"
               className="flex flex-col md:flex-row gap-2 justify-center items-center"
             >
-              Enter Room Code
+              Enter Room Number
               <div className="relative w-[90%] md:w-1/3 self-center">
                 <input
                   id="create-game"
-                  // value={room}
-                  // onChange={(e) => setRoom(e.target.value)}
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
                   className="bg-[#413e3c] text-yellow-500 p-2 w-full"
                   type="text"
                 />
                 <button
-                  className={`${styles.button} absolute right-[4px] top-1/2 translate-y-[-50%] px-2 py-1`}
+                  onClick={() => joinRoomByNumber(roomName)}
+                  className={`${style.button} absolute right-[4px] top-1/2 translate-y-[-50%] px-2 py-1`}
                 >
                   Join
                 </button>
               </div>
             </label>
             or Enter Room:
-            <div className="h-full grid grid-cols-2 gap-2 overflow-y-auto scrolling-touch">
+            <div className="h-full grid grid-cols-2 gap-2 overflow-y-auto scrolling-touch ">
               {Array.isArray(rooms) &&
                 rooms.map((room) => (
                   <div
-                    onClick={() => joinRoom(room.name, room.mode)}
+                    onClick={() =>
+                      joinRoom(
+                        { name: room.name, player: userInfo.username },
+                        room.mode
+                      )
+                    }
                     key={room.name}
-                    className="border-solid cursor-pointer border-black border-[1px] h-[150px]"
+                    className="border-solid cursor-pointer relative h-[150px] border-[1px] border-[rgba(0,0,0,0.3)] rounded-md"
                   >
-                    {room.name}
-                    {room.mode}
+                    <img
+                      src={roomImg}
+                      alt=""
+                      className="absolute w-full h-full rounded-md"
+                    />
+                    <span className="absolute top-[32%] font-bold text-lg md:text-xl left-[50%] translate-x-[-50%]">
+                      {room.name}
+                    </span>
+                    <span className="absolute top-[50%] text-gray-500 text-sm left-[50%] translate-x-[-50%]">
+                      {room.mode?.replace("super", "super ")}
+                      {/* change "supereyes to "super eyes" */}
+                    </span>
+                    <span className="absolute top-[65%] text-gray-500 text-sm flex justify-center gap-1 items-center left-[50%] translate-x-[-50%]">
+                      <BsFillPersonFill style={{ fontSize: "18px" }} />{" "}
+                      {`${room.players.length}/2`}
+                    </span>
                   </div>
                 ))}
+            </div>
+          </div>
+        </Modal>
+        {/* Modal in room */}
+        <Modal isShowing={showInRoomModal} closeButton hide={toggleInRoomModal}>
+          <div className="bg-white w-[350px] md:w-[400px] h-auto flex flex-col gap-4 text-center p-2">
+            <h4 className="text-blue-300 font-bold ">
+              {`Room : ${roomName}, Mode: ${roomMode}`}{" "}
+              <p className="text-green-500 text-[12px]">{notify}</p>
+            </h4>
+            <div className="h-1/2 flex">
+              <p className="flex-1 flex items-center h-auto break-all border-r-[1px] border-r-black pr-2">
+                <BsFillPersonFill style={{ fontSize: "24px" }} />{" "}
+                <span className="break-all w-4/5">
+                  {/* {!userInfo ? "" : userInfo.name || userInfo.username} */}
+                  {players[0]}
+                </span>
+                {isReady && (
+                  <BsFillCheckCircleFill style={{ color: "green" }} />
+                )}
+              </p>
+              <p className="flex-1 flex items-center h-auto break-all">
+                <GiAmericanFootballPlayer
+                  style={{
+                    paddingLeft: "4px",
+                    fontSize: "24px",
+                    color: "red",
+                  }}
+                />
+                <span className="break-all w-4/5">
+                  {/* {secondPlayer !== "" && secondPlayer} */}
+                  {players.length === 2 && players[1]}
+                </span>
+                {secondPlayerReady && (
+                  <BsFillCheckCircleFill style={{ color: "green" }} />
+                )}
+              </p>
+            </div>
+            <div className="flex justify-evenly">
+              <button
+                onClick={handleReady}
+                className={`${style.button} px-2 py-1 w-1/3 mx-auto text-black`}
+              >
+                Ready
+              </button>
+              <button
+                onClick={() => {
+                  toggleInRoomModal();
+                  socket.emit("leave_room", roomName);
+                  setIsReady(false);
+                  setSecondPlayerReady(false);
+                }}
+                className={`${style.button} px-2 py-1 w-1/3 mx-auto text-black`}
+              >
+                Leave Room
+              </button>
             </div>
           </div>
         </Modal>
