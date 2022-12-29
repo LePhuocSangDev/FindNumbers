@@ -4,10 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "node dist/app.js",
-    "start": "tsnd src/app.ts --respawn --transpile-only --exit-child",
-    "build": "tsc",
-    "debug": "ndb src/app.ts"
+    "dev": "node dist/index.js",
+    "start": "tsnd src/index.ts --respawn --transpile-only --exit-child",
+    "add-build": "git add dist",
+    "build": "rimraf dist && tsc",
+    "debug": "ndb src/index.ts",
+    "ts.check": "tsc --project tsconfig.json"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +33,13 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.8.0",
+    "pre-commit": "^1.2.2",
+    "rimraf": "^3.0.2",
     "socket.io": "^4.5.4"
-  }
+  },
+  "pre-commit": [
+    "ts.check",
+    "build",
+    "add-build"
+  ]
 }
