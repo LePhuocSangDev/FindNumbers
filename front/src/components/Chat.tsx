@@ -17,14 +17,13 @@ const Chat = () => {
   const room = location.pathname.split("/")[3];
   const [currentMessage, setCurrentMessage] = useState("");
   const [messageList, setMessageList] = useState<Message[]>([]);
-
   const sendMessage = async () => {
     try {
       if (currentMessage !== "") {
         const messageData: Message = {
           room: room,
           message: currentMessage,
-          author: userInfo.name || " no one",
+          author: userInfo.name || userInfo.username,
           time: new Date(),
           picture: userInfo.picture,
         };
@@ -66,32 +65,32 @@ const Chat = () => {
             <div key={index} className="chat-message pb-2">
               <div
                 className={`flex items-end ${
-                  userInfo?.name === msg.author
+                  userInfo?.name || userInfo.username === msg.author
                     ? "justify-end"
                     : "justify-start"
                 }  `}
               >
-                <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
-                  <div>
-                    <span
-                      className={`px-4 py-2 rounded-lg inline-block ${
-                        userInfo.name === msg.author
-                          ? "bg-white text-black rounded-br-none"
-                          : "bg-blue-600 rounded-bl-none text-white"
-                      } `}
-                    >
-                      {msg.message}
-                    </span>
-                  </div>
+                <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end w-full h-auto">
+                  <p
+                    className={`px-4 py-2 rounded-lg w-full h-auto break-all ${
+                      userInfo.name || userInfo.username === msg.author
+                        ? "bg-white text-black rounded-br-none"
+                        : "bg-blue-600 rounded-bl-none text-white"
+                    } `}
+                  >
+                    {msg.message}
+                  </p>
                 </div>
                 <img
                   src={
-                    userInfo.name === msg.author
+                    userInfo.name || userInfo.username === msg.author
                       ? userInfo.picture
                       : msg.picture
                   }
                   className={`w-6 h-6 rounded-full ${
-                    userInfo.name === msg.author ? "order-2" : "order-2/"
+                    userInfo.name || userInfo.username === msg.author
+                      ? "order-2"
+                      : "order-2/"
                   } order-2/`}
                 />
               </div>
@@ -111,7 +110,7 @@ const Chat = () => {
               event.key === "Enter" && sendMessage();
             }}
             placeholder="Write your message!"
-            className="w-full focus:outline-none focus:placeholder-gray-400 text-gray-600 placeholder-gray-600  bg-gray-200 rounded-md p-2 text-sm "
+            className="w-full focus:outline-none break-all h-auto focus:placeholder-gray-400 text-gray-600 placeholder-gray-600  bg-gray-200 rounded-md p-2 text-sm "
           />
           <div className="absolute right-[8px] items-center inset-y-0 hidden sm:flex">
             <button onClick={sendMessage}>

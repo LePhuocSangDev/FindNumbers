@@ -7,8 +7,14 @@ import { Server, Socket } from "socket.io";
 import authRouter from "./routes/auth";
 import Message from "./models/Message";
 import Room from "./models/Room";
+const cloudinary = require("cloudinary");
 
 dotenv.config();
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const app = express();
 const server = app.listen(process.env.PORT, () => {
@@ -36,6 +42,8 @@ const io = new Server(server, {
   },
 });
 
+let readyPlayers = [];
+
 io.on("connection", (socket: Socket) => {
   console.log(`User Connected: ${socket.id}`);
 
@@ -52,56 +60,53 @@ io.on("connection", (socket: Socket) => {
     });
   });
 
-  socket.on("join_room", async (roomName) => {
-    socket.join(roomName);
-    console.log(`User with ID: ${socket.id} joined room: ${roomName}`);
-    const previousMessages = await Message.find({ roomName })
+  socket.on("join_room", async (gameRoom) => {
+    readyPlayers = [];
+    const previousMessages = await Message.find({ room: gameRoom.name })
       .sort({ timestamp: 1 })
       .exec();
-    io.in(roomName).emit("update_messages", previousMessages);
-    const foundRoom: any = await Room.findOne({ name: roomName });
+    io.in(gameRoom.name).emit("update_messages", previousMessages);
+    const foundRoom: any = await Room.findOne({ name: gameRoom.name });
     if (foundRoom) {
-      foundRoom?.players.push(socket.id);
+      if (foundRoom.available) {
+        foundRoom?.players.push(socket.id);
+        socket.join(gameRoom.name);
+        console.log(`User with ID: ${socket.id} joined room: ${gameRoom.name}`);
+        io.in(gameRoom.name).emit("user_joined", {
+          userId: socket.id,
+          player: gameRoom.player,
+        });
+      } else {
+        socket.emit("error", "Room full");
+      }
+
       if (foundRoom.players.length >= 2) {
         foundRoom.available = false;
       }
+
       await foundRoom.save((error: Error) => {
         if (error) {
           console.error(error);
-        } else {
-          // Check if the room is empty
-          if (foundRoom.players.length === 0) {
-            // Set a timer to delete the room if no one is in it after 10 minutes
-            const timer = setTimeout(() => {
-              Room.remove({ _id: foundRoom._id }, (error) => {
-                if (error) {
-                  console.error(error);
-                } else {
-                  // Broadcast a message to all clients to update the list of rooms
-                  io.emit("update_rooms", foundRoom);
-                }
-              });
-            }, 1000 * 60 * 10); // 10 minutes in milliseconds
-
-            // Cancel the timer if another user joins the room before the timeout expires
-            socket.on("join_room", () => {
-              clearTimeout(timer);
-            });
-          }
         }
       });
-      console.log(foundRoom);
+    } else {
+      socket.emit("error", "Room not found");
     }
   });
 
   socket.on("leave_room", async (roomName) => {
+    readyPlayers = [];
     // Leave the room
-    socket.leave(roomName);
-    console.log(`User with ID: ${socket.id} left room: ${roomName}`);
 
     // Find the room in the database
     const foundRoom: any = await Room.findOne({ name: roomName });
     if (foundRoom) {
+      socket.leave(roomName);
+      console.log(`User with ID: ${socket.id} left room: ${roomName}`);
+      socket.broadcast.to(roomName).emit("user_left", {
+        userId: socket.id,
+        message: "Your opponent has left the room",
+      });
       // Remove the user's socket ID from the list of players in the room
       const index = foundRoom.players.indexOf(socket.id);
       if (index > -1) {
@@ -109,8 +114,31 @@ io.on("connection", (socket: Socket) => {
       }
 
       // Update the room's availability
-      if (foundRoom.players.length < 2) {
-        foundRoom.available = true;
+      foundRoom.available = true;
+
+      if (foundRoom.players.length === 0) {
+        // Set a timer to delete the room if no one is in it after 10 minutes
+        const timer = setTimeout(() => {
+          Room.deleteOne({ _id: foundRoom._id }, (error) => {
+            if (error) {
+              console.error(error);
+            } else {
+              // Broadcast a message to all clients to update the list of rooms
+              io.emit("update_rooms", foundRoom);
+            }
+          });
+          Message.deleteOne({ room: foundRoom.name }, (error) => {
+            if (error) {
+              console.log(error);
+            }
+          });
+          console.log("clear");
+        }, 1000 * 60 * 5);
+
+        // Cancel the timer if another user joins the room before the timeout expires
+        socket.on("join_room", () => {
+          clearTimeout(timer);
+        });
       }
       await foundRoom.save((error: Error) => {
         if (error) {
@@ -159,8 +187,23 @@ io.on("connection", (socket: Socket) => {
       socket.to(data.room).emit("receive_gameData", data);
     }
   );
+  socket.on("game_over", (data) => {
+    socket.to(data.room).emit("end_game", data);
+  });
+  socket.on("ready", (gameRoom) => {
+    readyPlayers.push(gameRoom.name);
+    socket.to(gameRoom.roomName).emit("playerReady", {
+      name: gameRoom.name,
+      numberOfReady: readyPlayers.length,
+    });
+    console.log(readyPlayers.length);
+    if (readyPlayers.length === 2) {
+      socket.to(gameRoom.roomName).emit("game_start");
+    }
+  });
 
   socket.on("disconnect", () => {
+    console.log(socket.rooms);
     console.log("User Disconnected", socket.id);
   });
 });

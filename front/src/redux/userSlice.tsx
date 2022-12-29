@@ -1,10 +1,12 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "./api";
+import { useAlert } from "react-alert";
 
 interface State {
   userInfo: object | null;
   isFetching: boolean;
   error: boolean;
+  message: string;
 }
 
 interface LoginParams {
@@ -16,6 +18,7 @@ interface RegisterParams {
   email: string;
   password: string;
   username: string;
+  picture: String | undefined;
 }
 
 export const userLogin = createAsyncThunk(
@@ -38,6 +41,7 @@ const initialState: State = {
   userInfo: null,
   isFetching: false,
   error: false,
+  message: "",
 };
 
 export const userSlice = createSlice({

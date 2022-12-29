@@ -13,20 +13,19 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginGoogle, selectUser, userLogin } from "../redux/userSlice";
 import loginBg from "../assets/image/bg-1.png";
 import PageAnimation from "../style/PageAnimation";
-import FacebookSdkError from "../components/FacebookSdkError";
 
 const schema = yup
   .object({
     username: yup
       .string()
-      .min(5, "Vui lòng nhập tối thiểu 5 kí tự")
-      .max(25, "Vui lòng nhập tối đa 25 kí tự")
-      .required("Vui lòng không để trống"),
+      .min(5, "Please enter at least 5 characters")
+      .max(25, "Please enter up to 25 characters")
+      .required("This field is required"),
     password: yup
       .string()
-      .min(5, "Vui lòng nhập tối thiểu 5 kí tự")
-      .max(25, "Vui lòng nhập tối đa 25 kí tự")
-      .required("Vui lòng không để trống"),
+      .min(5, "Please enter at least 5 characters")
+      .max(25, "Please enter up to 25 characters")
+      .required("This field is required"),
   })
   .required();
 
@@ -47,12 +46,11 @@ const Login = () => {
   });
 
   const dispatch: (action: any) => void = useDispatch();
-  const { userInfo } = useSelector(selectUser);
+  const { userInfo, error } = useSelector(selectUser);
 
   useEffect(() => {
     userInfo !== null && navigate("/");
   }, [userInfo]);
-
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       const request = await axios.get(
@@ -66,7 +64,7 @@ const Login = () => {
   });
 
   const responseFacebook = (response: any) => {
-    dispatch(loginGoogle(response)); //
+    dispatch(loginGoogle(response)); // assign userInfo with response
   };
   return (
     <PageAnimation>
@@ -80,7 +78,6 @@ const Login = () => {
             <form
               onSubmit={handleSubmit((data) => {
                 dispatch(userLogin(data));
-                resetField("username");
                 resetField("password");
               })}
               className="mt-8 space-y-6"
@@ -100,6 +97,7 @@ const Login = () => {
                     className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                     placeholder="username"
                   />
+                  <p className="text-red-600">{errors.username?.message}</p>
                 </div>
                 <div>
                   <label htmlFor="password" className="sr-only">
@@ -115,6 +113,7 @@ const Login = () => {
                     className="relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                     placeholder="Password"
                   />
+                  <p className="text-red-600">{errors.password?.message}</p>
                 </div>
               </div>
 

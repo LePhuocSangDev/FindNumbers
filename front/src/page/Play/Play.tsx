@@ -17,6 +17,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { lines, mode1, mode2 } from "../../data/data";
 import { selectUser } from "../../redux/userSlice";
 import { useSelector } from "react-redux";
+import { useAlert, positions } from "react-alert";
 import PageAnimation from "../../style/PageAnimation";
 
 interface GameData {
@@ -25,9 +26,17 @@ interface GameData {
   room: string;
   player: string;
 }
+// interface GameOverData {
+//   points: number;
+//   time: string;
+//   player: string;
+//   room: string;
+// }
 
 const Play = ({ type }: { type: string }) => {
   const navigate = useNavigate();
+  const alert = useAlert();
+
   const { mode, room } = useParams();
   const { userInfo } = useSelector(selectUser);
   const buttonRef: LegacyRef<HTMLButtonElement> | undefined = useRef() as any;
@@ -44,8 +53,8 @@ const Play = ({ type }: { type: string }) => {
   const [hours, setHours] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [music] = useState(new Audio(audio));
-  // const [gameData, setGameData] = useState<GameData[]>([]);
   const [gameData, setGameData] = useState<GameData>();
+  // const [gameOverData, setGameOverData] = useState<GameOverData>();
   const [playerNum, setPlayerNum] = useState<number[]>([]);
   const [reOrderArray, setReOrderArray] = useState<number[]>(mode1);
   const buttonsCollections = document.getElementsByTagName("button");
@@ -60,10 +69,23 @@ const Play = ({ type }: { type: string }) => {
 
     document.addEventListener("keydown", handleKeyDown);
 
+    let interval: NodeJS.Timeout;
+    if (mode === "easy") {
+      sufferArray();
+    }
+    if (mode === "superhard") {
+      interval = setInterval(() => sufferArray(), 15000);
+    }
+    if (mode === "supereyes") {
+      interval = setInterval(() => sufferArray(), 5000);
+    }
+
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+      clearInterval(interval);
     };
   }, []);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (!isPaused) {
@@ -89,29 +111,28 @@ const Play = ({ type }: { type: string }) => {
       clearInterval(interval);
     };
   }, [isPaused, seconds, minutes, hours]);
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (mode === "easy") {
-      sufferArray();
-    }
-    if (mode === "superhard") {
-      interval = setInterval(() => sufferArray(), 15000);
-    }
-    if (mode === "supereyes") {
-      interval = setInterval(() => sufferArray(), 5000);
-    }
-    return () => clearInterval(interval);
-  }, []);
+
   useEffect(() => {
     socket.on("receive_gameData", (data) => {
       setGameData(data);
       setPlayerNum((prev) => [...prev, data.chosenNumber]);
       setCurrentNumber((prevCurrent) => prevCurrent + 1);
     });
+    socket.on("user_left", (data) => alert.show(data.message));
+
     return () => {
       socket.off("receive_gameData");
+      socket.off("user_left");
     };
   }, [socket]);
+
+  useEffect(() => {
+    if (currentNumber >= 100) {
+      toggleResult();
+      togglePause();
+    }
+  }, [currentNumber]);
+
   const sufferArray = () => {
     let shuffled = mode1
       .map((value) => ({ value, sort: Math.random() })) // put each element in the array in an object, and give it a random sort key
@@ -119,6 +140,7 @@ const Play = ({ type }: { type: string }) => {
       .map(({ value }) => value); //unmap to get the original objects
     setReOrderArray(shuffled);
   };
+
   const handleChooseNumber = async (
     e: React.MouseEvent<HTMLElement>,
     number: number
@@ -132,7 +154,7 @@ const Play = ({ type }: { type: string }) => {
         chosenNumber: number,
         points: points + 1,
         room: room,
-        player: userInfo.name || "no one",
+        player: userInfo.name || userInfo.username,
       };
       await socket.emit("send_gameData", gameData);
     }
@@ -143,20 +165,24 @@ const Play = ({ type }: { type: string }) => {
     const targetButton = buttons.find(
       (button) => Number(button.innerText) === targetNumber
     );
-    targetButton?.classList.add("chosen", "help");
-    currentNumber < 100 && setCurrentNumber(currentNumber + 1);
+    targetButton?.classList.add("help");
+    setTimeout(() => {
+      targetButton?.classList.remove("help");
+    }, 3000);
   };
+
   const handleSound = (e: any): void => {
     const checked = e.target.checked;
     checked ? music.play() : music.pause();
   };
+
   const togglePause = () => {
     setIsPaused((prevIsPaused) => !prevIsPaused);
   };
   return (
     <PageAnimation>
       <div className="flex gap-6 flex-col md:flex-row h-auto md:h-screen py-2 px-4 md:px-8 md:py-4">
-        <div className="bg-white w-full md:w-5/6 relative h-screen md:h-full rounded-xl">
+        <div className="bg-white w-full md:w-5/6 relative h-[90vh] md:h-full rounded-xl">
           {reOrderArray.map((num, index) => (
             <button
               id={`number-${index + 1}`}
@@ -266,14 +292,33 @@ const Play = ({ type }: { type: string }) => {
             </div>
           </div>
         </Modal>
-        <Modal isShowing={showResult} hide={toggleResult}>
-          <div className="bg-white w-[250px] h-[180px] flex flex-col justify-evenly text-center">
+        <Modal isShowing={showResult} closeButton hide={toggleResult}>
+          <div className="bg-white w-[250px] h-[280px] flex flex-col justify-evenly text-center">
             <h4 className="text-blue-300 font-bold ">YOUR SCORE</h4>
             <div className="px-2">
               You get <span className="text-yellow-500">{points}</span> points
-              in <span>{minutes === 0 ? "" : minutes + " minutes and "}</span>
+            </div>
+            {gameData && (
+              <div className="px-2">
+                Your opponent get{" "}
+                <span className="text-yellow-500">{gameData.points}</span>{" "}
+                points
+              </div>
+            )}
+            <div>
+              The time is:{" "}
+              <span>{minutes === 0 ? "" : minutes + " minutes and "}</span>
               <span>{seconds} seconds</span>
             </div>
+            {gameData && gameData.points < points ? (
+              <div className="text-red-500 font-bold uppercase text-lg">
+                You lose{" "}
+              </div>
+            ) : (
+              <div className="text-green-500 font-bold uppercase text-lg">
+                You Win
+              </div>
+            )}
             <div className="flex justify-evenly">
               <button
                 onClick={() => {
@@ -284,7 +329,10 @@ const Play = ({ type }: { type: string }) => {
                 Play Again
               </button>
               <button
-                onClick={() => navigate("/")}
+                onClick={() => {
+                  socket.emit("leave_room", room);
+                  navigate("/");
+                }}
                 className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
               >
                 Go Back
