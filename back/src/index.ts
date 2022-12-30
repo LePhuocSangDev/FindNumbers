@@ -69,12 +69,13 @@ io.on("connection", (socket: Socket) => {
     const foundRoom: any = await Room.findOne({ name: gameRoom.name });
     if (foundRoom) {
       if (foundRoom.available) {
-        foundRoom?.players.push(socket.id);
+        foundRoom?.players.push(gameRoom.player);
         socket.join(gameRoom.name);
         console.log(`User with ID: ${socket.id} joined room: ${gameRoom.name}`);
         io.in(gameRoom.name).emit("user_joined", {
           userId: socket.id,
           player: gameRoom.player,
+          room: gameRoom.name,
         });
       } else {
         socket.emit("error", "Room full");
@@ -87,6 +88,8 @@ io.on("connection", (socket: Socket) => {
       await foundRoom.save((error: Error) => {
         if (error) {
           console.error(error);
+        } else {
+          io.emit("update_rooms", foundRoom);
         }
       });
     } else {
@@ -94,21 +97,24 @@ io.on("connection", (socket: Socket) => {
     }
   });
 
-  socket.on("leave_room", async (roomName) => {
+  socket.on("leave_room", async (gameRoom) => {
     readyPlayers = [];
     // Leave the room
 
     // Find the room in the database
-    const foundRoom: any = await Room.findOne({ name: roomName });
+    const foundRoom: any = await Room.findOne({ name: gameRoom.roomName });
     if (foundRoom) {
-      socket.leave(roomName);
-      console.log(`User with ID: ${socket.id} left room: ${roomName}`);
-      socket.broadcast.to(roomName).emit("user_left", {
+      socket.leave(gameRoom.roomName);
+      console.log(
+        `User with ID: ${gameRoom.player} left room: ${gameRoom.roomName}`
+      );
+      socket.broadcast.to(gameRoom.roomName).emit("user_left", {
         userId: socket.id,
-        message: "Your opponent has left the room",
+        player: gameRoom.player,
+        message: `${gameRoom.player} has left the room`,
       });
       // Remove the user's socket ID from the list of players in the room
-      const index = foundRoom.players.indexOf(socket.id);
+      const index = foundRoom.players.indexOf(gameRoom.player);
       if (index > -1) {
         foundRoom.players.splice(index, 1);
       }
@@ -153,7 +159,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("get_rooms", () => {
     // Find available rooms in the database
-    Room.find({ available: true }, (error: Error, rooms: any) => {
+    Room.find((error: Error, rooms: any) => {
       if (error) {
         console.error(error);
       } else {
@@ -187,9 +193,7 @@ io.on("connection", (socket: Socket) => {
       socket.to(data.room).emit("receive_gameData", data);
     }
   );
-  socket.on("game_over", (data) => {
-    socket.to(data.room).emit("end_game", data);
-  });
+
   socket.on("ready", (gameRoom) => {
     readyPlayers.push(gameRoom.name);
     socket.to(gameRoom.roomName).emit("playerReady", {
@@ -202,8 +206,24 @@ io.on("connection", (socket: Socket) => {
     }
   });
 
+  socket.on("game_over", (data) => {
+    socket.to(data.room).emit("end_game", data);
+  });
+
+  socket.on("send_replay_invitation", (invitation) => {
+    console.log(invitation);
+    socket.to(invitation.room).emit("answer_invitation", invitation.message);
+  });
+  socket.on("accept_replay", (room) => {
+    socket.to(room).emit("replay_game");
+  });
+  socket.on("decline_replay", (room) => {
+    socket.to(room).emit("not_replay", {
+      message: "Your opponent doesn't want to play again",
+    });
+  });
+
   socket.on("disconnect", () => {
-    console.log(socket.rooms);
     console.log("User Disconnected", socket.id);
   });
 });

@@ -63,9 +63,9 @@ const Login = () => {
     onError: (errorResponse) => console.log(errorResponse),
   });
 
-  const responseFacebook = (response: any) => {
-    dispatch(loginGoogle(response)); // assign userInfo with response
-  };
+  // const responseFacebook = (response: any) => {
+  //   dispatch(loginGoogle(response)); // assign userInfo with response
+  // };
   return (
     <PageAnimation>
       <div className="flex min-h-full h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
@@ -163,13 +163,7 @@ const Login = () => {
                 href="#"
                 className="text-center rounded-2xl bg-[#1cb0b0] py-2.5 px-4 font-bold text-[#fbcdd6] hover:bg-gray-200 active:translate-y-[0.125rem] active:border-b-gray-200"
               >
-                <FacebookLogin
-                  appId="2628824880593812"
-                  fields="name,email,picture"
-                  cssClass="my-custom-class"
-                  callback={responseFacebook}
-                  textButton="FACEBOOK"
-                />
+                FACEBOOK
               </a>
               <a
                 href="#"

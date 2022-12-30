@@ -26,12 +26,6 @@ interface GameData {
   room: string;
   player: string;
 }
-// interface GameOverData {
-//   points: number;
-//   time: string;
-//   player: string;
-//   room: string;
-// }
 
 const Play = ({ type }: { type: string }) => {
   const navigate = useNavigate();
@@ -45,16 +39,29 @@ const Play = ({ type }: { type: string }) => {
   const { isShowing: showConfirmReplay, toggle: toggleConfirmReplay } =
     useModal();
   const { isShowing: showResult, toggle: toggleResult } = useModal();
+  const {
+    isShowing: showInvitation,
+    setIsShowing: setShowInvitation,
+    toggle: toggleInvitation,
+  } = useModal();
+  const {
+    isShowing: showNotification,
+    setIsShowing: setShowNotification,
+    toggle: toggleNotification,
+  } = useModal();
 
   const [currentNumber, setCurrentNumber] = useState(0);
+  const numberBtns = document.getElementsByClassName("num-btns");
   const [points, setPoints] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [minutes, setMinutes] = useState(0);
   const [hours, setHours] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [music] = useState(new Audio(audio));
+  const [isPlaying, setIsPlaying] = useState(true);
   const [gameData, setGameData] = useState<GameData>();
-  // const [gameOverData, setGameOverData] = useState<GameOverData>();
+  const [invitation, setInvitation] = useState("");
+  const [notification, setNotification] = useState("");
   const [playerNum, setPlayerNum] = useState<number[]>([]);
   const [reOrderArray, setReOrderArray] = useState<number[]>(mode1);
   const buttonsCollections = document.getElementsByTagName("button");
@@ -65,11 +72,16 @@ const Play = ({ type }: { type: string }) => {
         // Prevent the default action of the F3 key
         event.preventDefault();
       }
+      // Prevent Ctrl + F
+      if (event.ctrlKey && event.key === "f") {
+        event.preventDefault();
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
 
     let interval: NodeJS.Timeout;
+    sufferArray();
     if (mode === "easy") {
       sufferArray();
     }
@@ -87,9 +99,16 @@ const Play = ({ type }: { type: string }) => {
   }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    isPlaying ? music.play() : music.pause();
+    return () => {
+      music.pause();
+    };
+  }, [isPlaying]);
+
+  let timer: NodeJS.Timeout;
+  useEffect(() => {
     if (!isPaused) {
-      interval = setInterval(() => {
+      timer = setInterval(() => {
         setSeconds((prevSeconds) => prevSeconds + 1);
         if (seconds === 59) {
           setMinutes((prevMinutes) => prevMinutes + 1);
@@ -108,7 +127,7 @@ const Play = ({ type }: { type: string }) => {
       }, 1000);
     }
     return () => {
-      clearInterval(interval);
+      clearInterval(timer);
     };
   }, [isPaused, seconds, minutes, hours]);
 
@@ -120,12 +139,27 @@ const Play = ({ type }: { type: string }) => {
     });
     socket.on("user_left", (data) => alert.show(data.message));
 
+    socket.on("answer_invitation", (data) => {
+      setInvitation(data);
+      setShowInvitation(true);
+    });
+
+    socket.on("replay_game", () => {
+      resetGame();
+      setShowInvitation(false);
+      setShowNotification(true);
+      setNotification(`Accepted, click "OK" and play`);
+    });
+    socket.on("not_replay", (data) => {
+      setNotification(data.message);
+      setShowNotification(true);
+    });
+
     return () => {
       socket.off("receive_gameData");
       socket.off("user_left");
     };
   }, [socket]);
-
   useEffect(() => {
     if (currentNumber >= 100) {
       toggleResult();
@@ -171,14 +205,60 @@ const Play = ({ type }: { type: string }) => {
     }, 3000);
   };
 
+  const handleReplay = (): void => {
+    if (type === "single") {
+      toggleResult();
+      resetGame();
+    } else {
+      socket.emit("send_replay_invitation", {
+        room: room,
+        player: userInfo.username || userInfo.name,
+        message: "Your opponent want to replay!",
+      });
+      toggleResult();
+      toggleNotification();
+      setNotification("");
+    }
+  };
+  const acceptReplay = (): void => {
+    socket.emit("accept_replay", room);
+    toggleInvitation();
+    resetGame();
+  };
+
+  const declinedReplay = (): void => {
+    socket.emit("decline_replay", room);
+    toggleInvitation();
+  };
   const handleSound = (e: any): void => {
     const checked = e.target.checked;
-    checked ? music.play() : music.pause();
+    checked ? setIsPlaying(true) : setIsPlaying(false);
+  };
+  const resetGame = (): void => {
+    setPoints(0);
+    setCurrentNumber(0);
+    setSeconds(0);
+    setMinutes(0);
+    togglePause();
+    for (const numbtn of numberBtns) {
+      numbtn.classList.remove("chosen-1", "chosen-2");
+    }
+  };
+
+  const goBack = (): void => {
+    navigate("/");
+    if (type === "multi") {
+      socket.emit("leave_room", {
+        roomName: room,
+        player: userInfo.username || userInfo.name,
+      });
+    }
   };
 
   const togglePause = () => {
     setIsPaused((prevIsPaused) => !prevIsPaused);
   };
+
   return (
     <PageAnimation>
       <div className="flex gap-6 flex-col md:flex-row h-auto md:h-screen py-2 px-4 md:px-8 md:py-4">
@@ -190,7 +270,7 @@ const Play = ({ type }: { type: string }) => {
               className={`button ${mode === "easy" ? "mode-easy" : ""} ${
                 playerNum.some((chosenNumber) => chosenNumber === num) &&
                 "chosen-2"
-              }  z-[10] circle text-md md:text-2xl flex justify-center items-center absolute rounded-[50%] p-1 w-7 h-7 md:w-12 md:h-12 focus-visible:outline-none`}
+              } num-btns z-[10] circle text-md md:text-2xl flex justify-center items-center absolute rounded-[50%] p-1 w-7 h-7 md:w-12 md:h-12 focus-visible:outline-none`}
               key={num}
               onClick={(e) => handleChooseNumber(e, num)}
             >
@@ -235,7 +315,12 @@ const Play = ({ type }: { type: string }) => {
                 <input id="dark-mode" type="checkbox" /> Night
               </label>
               <label htmlFor="sound">
-                <input id="sound" type="checkbox" onChange={handleSound} />{" "}
+                <input
+                  id="sound"
+                  type="checkbox"
+                  checked={isPlaying}
+                  onChange={handleSound}
+                />{" "}
                 Sound
               </label>
             </div>
@@ -253,10 +338,7 @@ const Play = ({ type }: { type: string }) => {
             <p>Do you want to go back?</p>
             <div className="flex justify-evenly">
               <button
-                onClick={() => {
-                  navigate("/");
-                  socket.emit("leave_room", room);
-                }}
+                onClick={goBack}
                 className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
               >
                 Yes
@@ -310,34 +392,74 @@ const Play = ({ type }: { type: string }) => {
               <span>{minutes === 0 ? "" : minutes + " minutes and "}</span>
               <span>{seconds} seconds</span>
             </div>
-            {gameData && gameData.points < points ? (
-              <div className="text-red-500 font-bold uppercase text-lg">
-                You lose{" "}
-              </div>
-            ) : (
-              <div className="text-green-500 font-bold uppercase text-lg">
-                You Win
+            {type === "multi" && (
+              <div>
+                {gameData && gameData.points > points ? (
+                  <div className="text-red-500 font-bold uppercase text-lg">
+                    You lose{" "}
+                  </div>
+                ) : (
+                  <div className="text-green-500 font-bold uppercase text-lg">
+                    You Win
+                  </div>
+                )}
               </div>
             )}
+
             <div className="flex justify-evenly">
               <button
-                onClick={() => {
-                  location.reload();
-                }}
+                onClick={handleReplay}
                 className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
               >
                 Play Again
               </button>
               <button
-                onClick={() => {
-                  socket.emit("leave_room", room);
-                  navigate("/");
-                }}
+                onClick={goBack}
                 className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
               >
                 Go Back
               </button>
             </div>
+          </div>
+        </Modal>
+        <Modal isShowing={showInvitation} hide={toggleInvitation}>
+          <div className="bg-white w-[200px] h-[150px] flex flex-col justify-evenly text-center">
+            <h4 className="text-blue-300 font-bold ">MESSAGE</h4>
+            <p>{invitation}</p>
+            <div className="flex justify-evenly">
+              <button
+                onClick={acceptReplay}
+                className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
+              >
+                Yes
+              </button>
+              <button
+                onClick={declinedReplay}
+                className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </Modal>
+        <Modal isShowing={showNotification} hide={toggleNotification}>
+          <div className="bg-white w-[200px] h-[150px] flex flex-col justify-evenly text-center">
+            <h4 className="text-blue-300 font-bold ">MESSAGE</h4>
+            {notification === "" ? (
+              <p className="px-2">
+                Invitation{" "}
+                <span className="font-bold text-green-600">sent</span>. Wait for
+                your opponent to accept.
+              </p>
+            ) : (
+              <p className="px-4 text-green-600 font-bold">{notification}</p>
+            )}
+            <button
+              className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
+              onClick={toggleNotification}
+            >
+              Ok
+            </button>
           </div>
         </Modal>
       </div>
