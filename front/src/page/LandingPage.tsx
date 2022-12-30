@@ -19,6 +19,7 @@ import { GiAmericanFootballPlayer } from "react-icons/gi";
 import { BsFillPersonFill, BsFillCheckCircleFill } from "react-icons/bs";
 import { useAlert } from "react-alert";
 import { string } from "yup";
+import { io } from "socket.io-client";
 
 const elementVariants = {
   initial: {
@@ -47,6 +48,7 @@ const modeInfos = [
 ];
 interface Room {
   _id: string;
+  available: boolean;
   name: string;
   mode: string;
   players: string[];
@@ -66,22 +68,27 @@ const LandingPage = () => {
     useModal();
   const { isShowing: showJoinGameModal, toggle: toggleJoinGameModal } =
     useModal();
+  const { isShowing: showPairingModal, toggle: togglePairingModal } =
+    useModal();
   const { isShowing: showInRoomModal, toggle: toggleInRoomModal } = useModal();
 
+  const [selected, setSelected] = useState<null | string>(null);
   const [createGameInfo, setCreateGameInfo] = useState({ name: "", mode: "" });
   const [rooms, setRooms] = useState<Room[]>([]);
-
   const [roomName, setRoomName] = useState("");
   const [roomMode, setRoomMode] = useState("");
   const [isReady, setIsReady] = useState(false);
-  const [gameStart, setGameStart] = useState(false);
+  const [joinedRoomInfo, setJoinedRoomInfo] = useState("");
   const [numberOfReady, setNumberOfReady] = useState(0);
   const [secondPlayerReady, setSecondPlayerReady] = useState(false);
-  const [players, setPlayers] = useState<String[]>([]);
-  // const [secondPlayer, setSecondPlayer] = useState("");
-  // const [firstPlayer, setFirstPlayer] = useState("");
+  const [secondPlayer, setSecondPlayer] = useState("");
+  const [firstPlayer, setFirstPlayer] = useState<string[]>([]);
+  const [players, setPlayers] = useState<string[]>([]);
+  const [playersInRoom, setPlayersInRoom] = useState<string[] | undefined>([]);
   const [showUserOptions, setShowUserOptions] = useState(false);
   const [notify, setNotify] = useState("");
+  const availableRooms = rooms.filter((r) => r.available === true);
+
   useEffect(() => {
     socket.emit("get_rooms");
     // Listen for updates to the list of rooms
@@ -97,48 +104,33 @@ const LandingPage = () => {
           const updatedRoom = rooms.filter((_, index) => index !== roomIndex);
           updatedRoom.push(newRooms);
           setRooms(updatedRoom);
-          console.log(updatedRoom, "asdf");
         }
       }
     });
     socket.on("error", (err) => {
       toast.error(err);
     });
-  }, []);
+  }, [socket]);
   useEffect(() => {
     socket.on("user_left", (data) => {
+      socket.emit("get_rooms");
       setNotify(data.message);
-      console.log(data.message);
     });
     socket.on("user_joined", (data) => {
-      // setSecondPlayer(data.player);
+      socket.emit("get_rooms");
+      // update rooms list before doing logic bellow, otherwise its will be undefined.
       setNotify(`${data.player} has joined`);
-      setPlayers((prevPlayers) => [prevPlayers, data.player]);
-      // const roomIndex = rooms.findIndex(
-      //   (r) =>
-      //     r.players.filter((player) => player === data.userId) === data.userId
-      // );
-      // if (rooms[roomIndex].players.length === 1) {
-      //   setSecondPlayer(data.player);
-      //   setFirstPlayer(userInfo.username);
-      //   console.log("f");
-      // } else {
-      //   setFirstPlayer(data.player);
-      //   setSecondPlayer(userInfo.username);
-      //   console.log("s");
-      // }
+      setJoinedRoomInfo(data.room);
+      getPlayersInRoom(data.room);
     });
-    // console.log(firstPlayer, secondPlayer);
-    // console.log(players);
     socket.on("playerReady", (playerReady) => {
-      if (playerReady.name) {
+      if (playerReady.name && userInfo) {
         (playerReady.name !== userInfo.username ||
           playerReady.name !== userInfo.name) &&
           setSecondPlayerReady(true);
       }
       setNumberOfReady(playerReady.numberOfReady);
     });
-    console.log(rooms);
     socket.on("game_start", () => {
       const mode = localStorage.getItem("roomMode");
       const roomName = localStorage.getItem("roomName");
@@ -175,7 +167,11 @@ const LandingPage = () => {
     navigate(`/play/single/${mode}`);
   };
   const createGame = () => {
-    if (createGameInfo.name !== "" && createGameInfo.mode !== "") {
+    if (
+      createGameInfo.name !== "" &&
+      createGameInfo.mode !== "" &&
+      !isNaN(Number(createGameInfo.name))
+    ) {
       socket.emit("create_room", createGameInfo);
       socket.emit("join_room", {
         name: createGameInfo.name,
@@ -185,7 +181,11 @@ const LandingPage = () => {
       setRoomName(createGameInfo.name);
       setRoomMode(createGameInfo.mode);
       toggleCreateOptions();
-    } else console.log("error");
+    } else if (createGameInfo.name === "") {
+      alert.error("Please don't leave Room Number empty");
+    } else if (isNaN(Number(createGameInfo.name))) {
+      alert.error("Please enter only numbers");
+    }
   };
   const joinRoom = (
     gameRoom: { name: string; player: string },
@@ -197,7 +197,6 @@ const LandingPage = () => {
       toggleJoinGameModal();
       setRoomName(gameRoom.name);
       setRoomMode(mode);
-      // navigate(`/play/multi/${gameRoom.name}/${mode}`);
     }
   };
   const joinRoomByNumber = (gameRoom: string) => {
@@ -210,6 +209,7 @@ const LandingPage = () => {
       ...prev,
       mode: modeParams.toLowerCase().split(" ").join(""),
     }));
+    setSelected(modeParams);
   };
   const handleReady = () => {
     setIsReady(true);
@@ -218,6 +218,11 @@ const LandingPage = () => {
       roomName: roomName,
     });
     numberOfReady >= 1 && navigate(`/play/multi/${roomName}/${roomMode}`);
+  };
+  const getPlayersInRoom = (roomName: string) => {
+    socket.emit("get_rooms");
+    const foundRoom = rooms.find((r) => r.name === roomName);
+    console.log(foundRoom?.players);
   };
 
   return (
@@ -380,9 +385,7 @@ const LandingPage = () => {
             >
               Create Game
             </button>
-            <button className="text-blue-300 font-bold w-3/5 md:w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md rounded-md ">
-              Play With a Friend
-            </button>
+
             <button
               onClick={() => {
                 toggleJoinGameModal();
@@ -391,6 +394,9 @@ const LandingPage = () => {
               className="text-blue-300 font-bold w-3/5 md:w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md rounded-md"
             >
               Join Room
+            </button>
+            <button className="text-blue-300 font-bold w-3/5 md:w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md  rounded-md">
+              Play With Friends
             </button>
           </div>
         </Modal>
@@ -420,7 +426,11 @@ const LandingPage = () => {
                   <div
                     onClick={() => handleMode(modeInfo.mode)}
                     key={modeInfo.mode}
-                    className="border-[rgba(0,0,0,0.2)] relative cursor-pointer border-solid border-[1px] rounded-md shadow-md"
+                    id={modeInfo.mode}
+                    className={`${
+                      selected === modeInfo.mode &&
+                      "border-[red]  border-solid border-[4px]"
+                    }  relative cursor-pointer rounded-md shadow-md`}
                   >
                     <img
                       src={modeInfo.img}
@@ -479,8 +489,8 @@ const LandingPage = () => {
             </label>
             or Enter Room:
             <div className="h-full grid grid-cols-2 gap-2 overflow-y-auto scrolling-touch ">
-              {Array.isArray(rooms) &&
-                rooms.map((room) => (
+              {Array.isArray(availableRooms) &&
+                availableRooms.map((room) => (
                   <div
                     onClick={() =>
                       joinRoom(
@@ -522,10 +532,7 @@ const LandingPage = () => {
             <div className="h-1/2 flex">
               <p className="flex-1 flex items-center h-auto break-all border-r-[1px] border-r-black pr-2">
                 <BsFillPersonFill style={{ fontSize: "24px" }} />{" "}
-                <span className="break-all w-4/5">
-                  {/* {!userInfo ? "" : userInfo.name || userInfo.username} */}
-                  {players[0]}
-                </span>
+                <span className="break-all w-4/5">First Player</span>
                 {isReady && (
                   <BsFillCheckCircleFill style={{ color: "green" }} />
                 )}
@@ -538,10 +545,7 @@ const LandingPage = () => {
                     color: "red",
                   }}
                 />
-                <span className="break-all w-4/5">
-                  {/* {secondPlayer !== "" && secondPlayer} */}
-                  {players.length === 2 && players[1]}
-                </span>
+                <span className="break-all w-4/5">Second Player</span>
                 {secondPlayerReady && (
                   <BsFillCheckCircleFill style={{ color: "green" }} />
                 )}
@@ -557,7 +561,10 @@ const LandingPage = () => {
               <button
                 onClick={() => {
                   toggleInRoomModal();
-                  socket.emit("leave_room", roomName);
+                  socket.emit("leave_room", {
+                    roomName: roomName,
+                    player: userInfo.username || userInfo.name,
+                  });
                   setIsReady(false);
                   setSecondPlayerReady(false);
                 }}

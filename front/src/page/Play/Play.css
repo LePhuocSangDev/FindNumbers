@@ -515,16 +515,10 @@ rotate: 150deg
    border: 2px solid #bf0e0b
 }
 
-.help::before {
-   position: absolute;
-   top: 50%;
-   left: 50%;
-   transform: translate(-50%, -50%);
-   color: black;
-   font-weight: 900;
-   font-size: 24px;
-   content:  " \21E6";
-   rotate: 0deg;
+.help {
+  text-decoration: underline !important;
+  color: green !important;
+  font-size: 40px !important;
 }
 
 .spin::before,

@@ -66,16 +66,17 @@ const Options = ({
           <BiSearchAlt />
         </button>
       </div>
-      <button
-        onClick={() => {
-          toggleResult();
-          togglePause();
-          socket.emit("leave_room", room);
-        }}
-        className="bg-[#413e3c] text-yellow-500 p-2 w-2/3 self-center"
-      >
-        End Game
-      </button>
+      {type === "single" && (
+        <button
+          onClick={() => {
+            toggleResult();
+            togglePause();
+          }}
+          className="bg-[#413e3c] text-yellow-500 p-2 w-2/3 self-center"
+        >
+          Current Points
+        </button>
+      )}
     </div>
   );
 };
