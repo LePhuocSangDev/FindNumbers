@@ -45,7 +45,7 @@ mongoose.set("strictQuery", false);
 
 const io = new Server(server, {
   cors: {
-    origin: "https://findnumbers.up.railway.app",
+    origin: "https://find-numbers.vercel.app",
     methods: ["GET", "POST"],
   },
 });
