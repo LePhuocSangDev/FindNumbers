@@ -1,12 +1,23 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "./api";
-import { useAlert } from "react-alert";
+
+interface UserInfo {
+  _id: string;
+  username: string;
+  name: string;
+  email: string;
+  picture: string;
+}
 
 interface State {
-  userInfo: object | null;
+  userInfo: UserInfo | null;
   isFetching: boolean;
   error: boolean;
-  message: string;
+  errMsg: string | unknown;
+}
+
+interface RootState {
+  user: State;
 }
 
 interface LoginParams {
@@ -41,7 +52,7 @@ const initialState: State = {
   userInfo: null,
   isFetching: false,
   error: false,
-  message: "",
+  errMsg: "",
 };
 
 export const userSlice = createSlice({
@@ -54,6 +65,10 @@ export const userSlice = createSlice({
     logOut: (state) => {
       state.userInfo = null;
     },
+    clearErr: (state) => {
+      state.error = false;
+      state.errMsg = "";
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -64,9 +79,10 @@ export const userSlice = createSlice({
         state.isFetching = false;
         state.userInfo = action.payload;
       })
-      .addCase(registerUser.rejected, (state) => {
+      .addCase(registerUser.rejected, (state, action) => {
         state.isFetching = false;
         state.error = true;
+        state.errMsg = action.error.message;
       })
       .addCase(userLogin.pending, (state) => {
         state.isFetching = true;
@@ -82,8 +98,8 @@ export const userSlice = createSlice({
   },
 });
 
-export const selectUser = (state: any) => state.user;
+export const selectUser = (state: RootState) => state.user;
 
-export const { loginGoogle, logOut } = userSlice.actions;
+export const { loginGoogle, logOut, clearErr } = userSlice.actions;
 
 export default userSlice.reducer;

@@ -7,10 +7,10 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
-import { registerUser } from "../redux/userSlice";
-import { AppThunk } from "redux-toolkit";
+import { clearErr, registerUser } from "../redux/userSlice";
 import Modal from "../components/Modal";
 import useModal from "../hooks/useModal";
+import { useAlert } from "react-alert";
 
 const schema = yup
   .object({
@@ -32,6 +32,7 @@ const schema = yup
   .required();
 
 const Register = () => {
+  const alert = useAlert();
   const navigate = useNavigate();
   const [picture, setPicture] = useState("");
   const {
@@ -48,16 +49,27 @@ const Register = () => {
     },
   });
   const dispatch: (action: any) => void = useDispatch();
-  const { userInfo, isFetching } = useSelector((state: any) => state.user);
-  const { isShowing: showLoading, toggle: toggleLoading } = useModal();
-
+  const { userInfo, isFetching, error, errMsg } = useSelector(
+    (state: any) => state.user
+  );
+  const {
+    isShowing: showLoading,
+    setIsShowing: setShowLoading,
+    toggle: toggleLoading,
+  } = useModal();
+  console.log(errMsg);
   useEffect(() => {
     userInfo !== null && navigate("/");
   }, [userInfo]);
-  // useEffect(() => {
-  //   isFetching && toggleLoading();
-  //   !isFetching && toggleLoading();
-  // }, [isFetching]);
+  useEffect(() => {
+    isFetching && setShowLoading(true);
+    !isFetching && setShowLoading(false);
+  }, [isFetching]);
+  useEffect(() => {
+    errMsg === "Request failed with status code 401" &&
+      alert.error("User already exists");
+    dispatch(clearErr());
+  }, [isFetching]);
   const handleImageChange = (e: any) => {
     const file = e.target.files[0];
     const Reader = new FileReader();
@@ -146,7 +158,9 @@ const Register = () => {
               <button
                 type="submit"
                 disabled={isFetching}
-                className="group relative flex w-full justify-center rounded-md border border-transparent bg-[#c83900] py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                className={`group relative flex w-full justify-center rounded-md border border-transparent ${
+                  isFetching ? "bg-[#cb9681]" : "bg-[#c83900]"
+                } py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
               >
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                   <AiFillLock

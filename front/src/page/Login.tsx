@@ -10,9 +10,15 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
-import { loginGoogle, selectUser, userLogin } from "../redux/userSlice";
+import {
+  clearErr,
+  loginGoogle,
+  selectUser,
+  userLogin,
+} from "../redux/userSlice";
 import loginBg from "../assets/image/bg-1.png";
 import PageAnimation from "../style/PageAnimation";
+import { useAlert } from "react-alert";
 
 const schema = yup
   .object({
@@ -32,6 +38,7 @@ const schema = yup
 const Login = () => {
   const { isShowing, toggle } = useModal();
   const navigate = useNavigate();
+  const alert = useAlert();
   const {
     resetField,
     register,
@@ -44,7 +51,6 @@ const Login = () => {
       password: "",
     },
   });
-
   const dispatch: (action: any) => void = useDispatch();
   const { userInfo, error } = useSelector(selectUser);
 
@@ -66,6 +72,13 @@ const Login = () => {
   // const responseFacebook = (response: any) => {
   //   dispatch(loginGoogle(response)); // assign userInfo with response
   // };
+
+  useEffect(() => {
+    if (error) {
+      alert.error("Wrong username or password", { timeout: 2000 });
+      dispatch(clearErr());
+    }
+  }, [error]);
   return (
     <PageAnimation>
       <div className="flex min-h-full h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
@@ -131,7 +144,7 @@ const Login = () => {
                 <div className="text-sm">
                   <Link
                     to="/register"
-                    className="text-[#fbc2d7] font-bold hover:text-[#fbc2d7]"
+                    className="text-blue-600 font-bold underline hover:text-[#fbc2d7]"
                   >
                     Sign up
                   </Link>

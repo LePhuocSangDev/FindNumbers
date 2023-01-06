@@ -8,7 +8,6 @@ import { socket } from "../service/socket";
 import { useParams } from "react-router-dom";
 
 interface OptionsPros {
-  points: number;
   sufferArray(): void;
   handleHint(): void;
   currentNumber: number;
@@ -19,12 +18,10 @@ interface OptionsPros {
   type: string;
   minute: number;
   second: number;
-  hour: number;
   togglePause(): void;
 }
 
 const Options = ({
-  points,
   handleHint,
   currentNumber,
   toggleConfirmBack,
@@ -33,7 +30,6 @@ const Options = ({
   toggleResult,
   minute,
   second,
-  hour,
   togglePause,
   type,
 }: OptionsPros) => {

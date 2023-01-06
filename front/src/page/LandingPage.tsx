@@ -7,7 +7,6 @@ import { socket } from "../service/socket";
 import { useDispatch, useSelector } from "react-redux";
 import { logOut, selectUser } from "../redux/userSlice";
 import { motion } from "framer-motion";
-import { toast } from "react-toastify";
 import bg from "../assets/image/bg-3.png";
 import PageAnimation from "../style/PageAnimation";
 import easyImg from "../assets/image/easy.png";
@@ -18,8 +17,6 @@ import superEyesImg from "../assets/image/supereyes.png";
 import { GiAmericanFootballPlayer } from "react-icons/gi";
 import { BsFillPersonFill, BsFillCheckCircleFill } from "react-icons/bs";
 import { useAlert } from "react-alert";
-import { string } from "yup";
-import { io } from "socket.io-client";
 
 const elementVariants = {
   initial: {
@@ -60,6 +57,7 @@ const LandingPage = () => {
   const dispatch = useDispatch();
   const alert = useAlert();
   const { userInfo } = useSelector(selectUser);
+
   const { isShowing: showSinglePlayOptions, toggle: toggleSinglePlayOptions } =
     useModal();
   const { isShowing: showMultiPlayOptions, toggle: toggleMultiPlayOptions } =
@@ -67,8 +65,6 @@ const LandingPage = () => {
   const { isShowing: showCreateOptions, toggle: toggleCreateOptions } =
     useModal();
   const { isShowing: showJoinGameModal, toggle: toggleJoinGameModal } =
-    useModal();
-  const { isShowing: showPairingModal, toggle: togglePairingModal } =
     useModal();
   const { isShowing: showInRoomModal, toggle: toggleInRoomModal } = useModal();
 
@@ -78,12 +74,10 @@ const LandingPage = () => {
   const [roomName, setRoomName] = useState("");
   const [roomMode, setRoomMode] = useState("");
   const [isReady, setIsReady] = useState(false);
+  const [createErr, setCreateErr] = useState(false);
   const [joinedRoomInfo, setJoinedRoomInfo] = useState("");
   const [numberOfReady, setNumberOfReady] = useState(0);
   const [secondPlayerReady, setSecondPlayerReady] = useState(false);
-  const [secondPlayer, setSecondPlayer] = useState("");
-  const [firstPlayer, setFirstPlayer] = useState<string[]>([]);
-  const [players, setPlayers] = useState<string[]>([]);
   const [playersInRoom, setPlayersInRoom] = useState<string[] | undefined>([]);
   const [showUserOptions, setShowUserOptions] = useState(false);
   const [notify, setNotify] = useState("");
@@ -93,7 +87,6 @@ const LandingPage = () => {
     socket.emit("get_rooms");
     // Listen for updates to the list of rooms
     socket.on("update_rooms", (newRooms) => {
-      // setRooms(newRooms);
       if (Array.isArray(newRooms)) {
         setRooms(newRooms);
       } else {
@@ -108,20 +101,21 @@ const LandingPage = () => {
       }
     });
     socket.on("error", (err) => {
-      toast.error(err);
+      alert.error(err);
     });
   }, [socket]);
   useEffect(() => {
     socket.on("user_left", (data) => {
       socket.emit("get_rooms");
       setNotify(data.message);
+      setIsReady(false); // allow user ready only when both users in room
     });
     socket.on("user_joined", (data) => {
       socket.emit("get_rooms");
       // update rooms list before doing logic bellow, otherwise its will be undefined.
       setNotify(`${data.player} has joined`);
       setJoinedRoomInfo(data.room);
-      getPlayersInRoom(data.room);
+      setIsReady(false);
     });
     socket.on("playerReady", (playerReady) => {
       if (playerReady.name && userInfo) {
@@ -152,13 +146,11 @@ const LandingPage = () => {
     window.localStorage.setItem("roomName", JSON.stringify(roomName));
     window.localStorage.setItem("roomMode", JSON.stringify(roomMode));
   }, [roomName, roomMode]);
-
+  console.log(userInfo);
   const handleSinglePlay = () => {
     toggleSinglePlayOptions();
   };
-  // useEffect(() => {
-  //   alert.show(notify);
-  // }, [notify]);
+
   const handleMultiPlay = () => {
     socket.emit("get_rooms");
     !userInfo ? navigate("/login") : toggleMultiPlayOptions();
@@ -167,15 +159,20 @@ const LandingPage = () => {
     navigate(`/play/single/${mode}`);
   };
   const createGame = () => {
+    const isRoomExist = rooms.find((r) => r.name === createGameInfo.name);
+    if (isRoomExist) {
+      setCreateErr(true);
+    }
     if (
       createGameInfo.name !== "" &&
       createGameInfo.mode !== "" &&
-      !isNaN(Number(createGameInfo.name))
+      !isNaN(Number(createGameInfo.name)) &&
+      !isRoomExist
     ) {
       socket.emit("create_room", createGameInfo);
       socket.emit("join_room", {
         name: createGameInfo.name,
-        player: userInfo.username || userInfo.name,
+        player: userInfo?.username || userInfo?.name,
       });
       toggleInRoomModal();
       setRoomName(createGameInfo.name);
@@ -188,7 +185,7 @@ const LandingPage = () => {
     }
   };
   const joinRoom = (
-    gameRoom: { name: string; player: string },
+    gameRoom: { name: string; player: string | undefined },
     mode: string
   ) => {
     if (gameRoom.name !== "") {
@@ -214,17 +211,19 @@ const LandingPage = () => {
   const handleReady = () => {
     setIsReady(true);
     socket.emit("ready", {
-      name: userInfo.username || userInfo.name,
+      name: userInfo?.username || userInfo?.name,
       roomName: roomName,
     });
     numberOfReady >= 1 && navigate(`/play/multi/${roomName}/${roomMode}`);
   };
-  const getPlayersInRoom = (roomName: string) => {
-    socket.emit("get_rooms");
+  useEffect(() => {
+    getPlayersInRoom(joinedRoomInfo);
+  }, [rooms]);
+  const getPlayersInRoom = async (roomName: string) => {
     const foundRoom = rooms.find((r) => r.name === roomName);
-    console.log(foundRoom?.players);
+    setPlayersInRoom(foundRoom?.players);
   };
-
+  console.log(playersInRoom);
   return (
     <PageAnimation>
       <div
@@ -375,7 +374,7 @@ const LandingPage = () => {
           hide={toggleMultiPlayOptions}
           closeButton
         >
-          <div className="bg-white w-[300px] h-[400px] md:w-[400px] rounded-md flex flex-col justify-evenly items-center">
+          <div className="bg-white w-[300px] h-[250px] md:w-[350px] rounded-md flex flex-col justify-evenly items-center">
             <button
               onClick={() => {
                 toggleCreateOptions();
@@ -395,9 +394,6 @@ const LandingPage = () => {
             >
               Join Room
             </button>
-            <button className="text-blue-300 font-bold w-3/5 md:w-2/5 text-center block py-2 border-solid border-[rgba(0,0,0,0.2)] border-[1px] shadow-md  rounded-md">
-              Play With Friends
-            </button>
           </div>
         </Modal>
         {/* Modal Create Options */}
@@ -410,16 +406,18 @@ const LandingPage = () => {
                 <input
                   id="create-game"
                   value={createGameInfo.name}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setCreateGameInfo((prev) => ({
                       ...prev,
                       name: e.target.value,
-                    }))
-                  }
+                    }));
+                    setCreateErr(false);
+                  }}
                   className="bg-[#413e3c] text-yellow-500 p-2 ml-2"
                   type="text"
                 />
               </label>
+              {createErr && <p className="text-red-500">Room already exists</p>}
 
               <div className="grid grid-cols-2 gap-2 h-3/4 px-2">
                 {modeInfos.map((modeInfo) => (
@@ -494,7 +492,7 @@ const LandingPage = () => {
                   <div
                     onClick={() =>
                       joinRoom(
-                        { name: room.name, player: userInfo.username },
+                        { name: room.name, player: userInfo?.username },
                         room.mode
                       )
                     }
@@ -527,12 +525,24 @@ const LandingPage = () => {
           <div className="bg-white w-[350px] md:w-[400px] h-auto flex flex-col gap-4 text-center p-2">
             <h4 className="text-blue-300 font-bold ">
               {`Room : ${roomName}, Mode: ${roomMode}`}{" "}
-              <p className="text-green-500 text-[12px]">{notify}</p>
+              {playersInRoom && playersInRoom.length >= 2 ? (
+                <p className="text-green-500 text-[12px]">
+                  Lets click "ready" and play
+                </p>
+              ) : playersInRoom && playersInRoom.length == 1 ? (
+                <p className="text-green-500 text-[12px]">
+                  Wait for orther players to join
+                </p>
+              ) : (
+                <p className="text-green-500 text-[12px]">{notify}</p>
+              )}
             </h4>
             <div className="h-1/2 flex">
               <p className="flex-1 flex items-center h-auto break-all border-r-[1px] border-r-black pr-2">
                 <BsFillPersonFill style={{ fontSize: "24px" }} />{" "}
-                <span className="break-all w-4/5">First Player</span>
+                <span className="break-all w-4/5">
+                  {playersInRoom && playersInRoom[0]}
+                </span>
                 {isReady && (
                   <BsFillCheckCircleFill style={{ color: "green" }} />
                 )}
@@ -545,7 +555,9 @@ const LandingPage = () => {
                     color: "red",
                   }}
                 />
-                <span className="break-all w-4/5">Second Player</span>
+                <span className="break-all w-4/5">
+                  {playersInRoom && playersInRoom[1]}
+                </span>
                 {secondPlayerReady && (
                   <BsFillCheckCircleFill style={{ color: "green" }} />
                 )}
@@ -563,7 +575,7 @@ const LandingPage = () => {
                   toggleInRoomModal();
                   socket.emit("leave_room", {
                     roomName: roomName,
-                    player: userInfo.username || userInfo.name,
+                    player: userInfo?.username || userInfo?.name,
                   });
                   setIsReady(false);
                   setSecondPlayerReady(false);

@@ -1,6 +1,13 @@
-import mongoose from "mongoose";
+import mongoose, { Model } from "mongoose";
 
-const Room = new mongoose.Schema({
+interface Room {
+  name: string;
+  mode: string;
+  players: string[];
+  available: boolean;
+}
+
+const Room = new mongoose.Schema<Room>({
   name: { type: String, unique: true },
   mode: String,
   players: Array,
@@ -9,4 +16,4 @@ const Room = new mongoose.Schema({
     default: true,
   },
 });
-export default mongoose.model("Room", Room);
+export default mongoose.model<Room>("Room", Room);
