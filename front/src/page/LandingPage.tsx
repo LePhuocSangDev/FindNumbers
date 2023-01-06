@@ -146,7 +146,6 @@ const LandingPage = () => {
     window.localStorage.setItem("roomName", JSON.stringify(roomName));
     window.localStorage.setItem("roomMode", JSON.stringify(roomMode));
   }, [roomName, roomMode]);
-  console.log(userInfo);
   const handleSinglePlay = () => {
     toggleSinglePlayOptions();
   };
@@ -223,7 +222,7 @@ const LandingPage = () => {
     const foundRoom = rooms.find((r) => r.name === roomName);
     setPlayersInRoom(foundRoom?.players);
   };
-  console.log(playersInRoom);
+
   return (
     <PageAnimation>
       <div

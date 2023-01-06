@@ -57,7 +57,6 @@ const Register = () => {
     setIsShowing: setShowLoading,
     toggle: toggleLoading,
   } = useModal();
-  console.log(errMsg);
   useEffect(() => {
     userInfo !== null && navigate("/");
   }, [userInfo]);
