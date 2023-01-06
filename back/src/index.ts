@@ -1,5 +1,5 @@
 import express from "express";
-import mongoose from "mongoose";
+import mongoose, { MongooseError } from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -8,6 +8,14 @@ import authRouter from "./routes/auth";
 import Message from "./models/Message";
 import Room from "./models/Room";
 const cloudinary = require("cloudinary");
+
+interface Room {
+  _id: string;
+  name: string;
+  mode: string;
+  players: string[];
+  available: boolean;
+}
 
 dotenv.config();
 cloudinary.config({
@@ -37,7 +45,7 @@ mongoose.set("strictQuery", false);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "https://findnumbers.up.railway.app",
     methods: ["GET", "POST"],
   },
 });
@@ -51,7 +59,7 @@ io.on("connection", (socket: Socket) => {
     // Create the room in the database
     Room.create(room, (error: Error, newRoom: string) => {
       if (error) {
-        console.error(error);
+        console.log("create room failed");
       } else {
         // Broadcast a message to all clients to update the list of rooms
         io.emit("update_rooms", newRoom);
@@ -66,7 +74,7 @@ io.on("connection", (socket: Socket) => {
       .sort({ timestamp: 1 })
       .exec();
     io.in(gameRoom.name).emit("update_messages", previousMessages);
-    const foundRoom: any = await Room.findOne({ name: gameRoom.name });
+    const foundRoom = await Room.findOne({ name: gameRoom.name });
     if (foundRoom) {
       if (foundRoom.available) {
         foundRoom?.players.push(gameRoom.player);
@@ -85,7 +93,7 @@ io.on("connection", (socket: Socket) => {
         foundRoom.available = false;
       }
 
-      await foundRoom.save((error: Error) => {
+      await foundRoom.save((error) => {
         if (error) {
           console.error(error);
         } else {
@@ -102,7 +110,9 @@ io.on("connection", (socket: Socket) => {
     // Leave the room
 
     // Find the room in the database
-    const foundRoom: any = await Room.findOne({ name: gameRoom.roomName });
+    const foundRoom = await Room.findOne({
+      name: gameRoom.roomName,
+    });
     if (foundRoom) {
       socket.leave(gameRoom.roomName);
       console.log(
@@ -110,6 +120,7 @@ io.on("connection", (socket: Socket) => {
       );
       socket.broadcast.to(gameRoom.roomName).emit("user_left", {
         userId: socket.id,
+        room: gameRoom.roomName,
         player: gameRoom.player,
         message: `${gameRoom.player} has left the room`,
       });
@@ -146,7 +157,7 @@ io.on("connection", (socket: Socket) => {
           clearTimeout(timer);
         });
       }
-      await foundRoom.save((error: Error) => {
+      await foundRoom.save((error) => {
         if (error) {
           console.error(error);
         } else {
@@ -159,7 +170,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("get_rooms", () => {
     // Find available rooms in the database
-    Room.find((error: Error, rooms: any) => {
+    Room.find((error: Error, rooms: Room | null) => {
       if (error) {
         console.error(error);
       } else {

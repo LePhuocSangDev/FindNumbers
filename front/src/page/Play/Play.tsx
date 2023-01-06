@@ -3,6 +3,7 @@ import React, {
   MutableRefObject,
   useEffect,
   useRef,
+  ChangeEvent,
   useState,
 } from "react";
 import { socket } from "../../service/socket";
@@ -38,7 +39,11 @@ const Play = ({ type }: { type: string }) => {
   const { isShowing: showSetting, toggle: toggleSetting } = useModal();
   const { isShowing: showConfirmReplay, toggle: toggleConfirmReplay } =
     useModal();
-  const { isShowing: showResult, toggle: toggleResult } = useModal();
+  const {
+    isShowing: showResult,
+    setIsShowing: setShowResult,
+    toggle: toggleResult,
+  } = useModal();
   const {
     isShowing: showInvitation,
     setIsShowing: setShowInvitation,
@@ -56,9 +61,10 @@ const Play = ({ type }: { type: string }) => {
   const [seconds, setSeconds] = useState(0);
   const [minutes, setMinutes] = useState(0);
   const [hours, setHours] = useState(0);
+  const [reloadButton, setReloadButton] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [music] = useState(new Audio(audio));
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [gameData, setGameData] = useState<GameData>();
   const [invitation, setInvitation] = useState("");
   const [notification, setNotification] = useState("");
@@ -137,7 +143,12 @@ const Play = ({ type }: { type: string }) => {
       setPlayerNum((prev) => [...prev, data.chosenNumber]);
       setCurrentNumber((prevCurrent) => prevCurrent + 1);
     });
-    socket.on("user_left", (data) => alert.show(data.message));
+    socket.on("user_left", (data) => {
+      alert.show(data.message);
+      toggleResult();
+      togglePause();
+      setReloadButton(false);
+    });
 
     socket.on("answer_invitation", (data) => {
       setInvitation(data);
@@ -180,7 +191,6 @@ const Play = ({ type }: { type: string }) => {
     number: number
   ) => {
     if (number === currentNumber + 1) {
-      // e.currentTarget.classList.add("spin");
       e.currentTarget.classList.add("chosen-1");
       setCurrentNumber((prevCurrent) => prevCurrent + 1);
       setPoints((prevPoints) => prevPoints + 1);
@@ -188,7 +198,7 @@ const Play = ({ type }: { type: string }) => {
         chosenNumber: number,
         points: points + 1,
         room: room,
-        player: userInfo.name || userInfo.username,
+        player: userInfo?.name || userInfo?.username,
       };
       await socket.emit("send_gameData", gameData);
     }
@@ -212,7 +222,7 @@ const Play = ({ type }: { type: string }) => {
     } else {
       socket.emit("send_replay_invitation", {
         room: room,
-        player: userInfo.username || userInfo.name,
+        player: userInfo?.username || userInfo?.name,
         message: "Your opponent want to replay!",
       });
       toggleResult();
@@ -230,7 +240,7 @@ const Play = ({ type }: { type: string }) => {
     socket.emit("decline_replay", room);
     toggleInvitation();
   };
-  const handleSound = (e: any): void => {
+  const handleSound = (e: ChangeEvent<HTMLInputElement>): void => {
     const checked = e.target.checked;
     checked ? setIsPlaying(true) : setIsPlaying(false);
   };
@@ -250,7 +260,7 @@ const Play = ({ type }: { type: string }) => {
     if (type === "multi") {
       socket.emit("leave_room", {
         roomName: room,
-        player: userInfo.username || userInfo.name,
+        player: userInfo?.username || userInfo?.name,
       });
     }
   };
@@ -291,7 +301,6 @@ const Play = ({ type }: { type: string }) => {
           }`}
         >
           <Options
-            points={points}
             sufferArray={sufferArray}
             handleHint={handleHint}
             currentNumber={currentNumber}
@@ -302,7 +311,6 @@ const Play = ({ type }: { type: string }) => {
             type={type}
             minute={minutes}
             second={seconds}
-            hour={hours}
             togglePause={togglePause}
           />
           {type === "single" ? "" : <Chat />}
@@ -359,7 +367,9 @@ const Play = ({ type }: { type: string }) => {
             <div className="flex justify-evenly">
               <button
                 onClick={() => {
-                  location.reload();
+                  handleReplay();
+                  toggleConfirmReplay();
+                  setShowResult(false);
                 }}
                 className={`${style.button} px-2 py-1 w-1/4 mx-auto text-black`}
               >
@@ -407,12 +417,14 @@ const Play = ({ type }: { type: string }) => {
             )}
 
             <div className="flex justify-evenly">
-              <button
-                onClick={handleReplay}
-                className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
-              >
-                Play Again
-              </button>
+              {reloadButton && (
+                <button
+                  onClick={handleReplay}
+                  className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
+                >
+                  Play Again
+                </button>
+              )}
               <button
                 onClick={goBack}
                 className={`${style.button} px-2 py-1 w-[40%] mx-auto text-black`}
